@@ -5,10 +5,12 @@ using ImageIO
 using FileIO
 using IterativeSolvers
 using PyPlot
+using Printf
 
 using Base
 
 include("auxilary_stuff.jl")
+include("Z_view_export.jl")
 include("physical_properties.jl")
 include("image_to_equation_matrix.jl")
 include("impedance_evaluation.jl")
