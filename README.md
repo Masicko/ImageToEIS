@@ -22,11 +22,14 @@ In addition, left and right sides of the matrix is grasped by 1 column of LSZ la
 ### Electrochemistry
 Physical simulation is done using standard electrical elements - R elements for ohmic resistance and RC element for a double-layer behavior on interfaces of LSM | YSZ. We have the following parameters:
 
-- *R_YSZ* : resistance of YSZ
-- *R_LSM* : resistance of LSM
+- *R_YSZ* : ohmic resistance of YSZ
+- *C_pol_YSZ* : polarization capacitance on YSZ side
+- *R_pol_YSZ* : polarization resistance on YSZ side
+- *R_LSM* : ohmic resistance of LSM
+- *C_pol_LSM* : polarization capacitance on LSM side
+- *R_pol_LSM* : polarization resistance on LSM side
 - *R_hole* : resistance of hole (is set to very high number as default)
-- *C_pol* : polarization capacitance
-- *R_pol* : polarization resistance
+
 
 Geometry specific behavior is simulated via interactions between pixels by the manner described in the following picture.
 
@@ -37,13 +40,17 @@ The each impedance *Z* is spedified using the information about starting materia
 
 !["Interaction scheme"](images/scheme_interaction.png?raw=true )
 
-- *M1 = YSZ* => *Z1 = R_YSZ/2*    (factor 1/2 is there so a total resistance through the whole YSZ particle is *R_YSZ*)
-- *M1 = hole* => *Z1 = R_hole/2*
-- *M1 = LSM/2*
-  - *M2 = YSZ*  => *Z1 = R_LSM/2 + Z_RC(R_pol, C_pol)* (including the double-layer)
-  - *M2 = LSM*  => *Z1 = R_LSM/2*
-  - *M2 = hole* => *Z1 = R_LSM/2*
+- *M1 = YSZ*
+  - *M2 = YSZ*  => *Z = R_YSZ/2* 
+  - *M2 = LSM*  => *Z = R_YSZ/2 + Z_RC(R_pol_YSZ, C_pol_YSZ)* (including the double-layer on YSZ side)
+  - *M2 = hole* => *Z = R_YSZ/2*
+- *M1 = LSM*
+  - *M2 = YSZ*  => *Z = R_LSM/2 + Z_RC(R_pol_LSM, C_pol_LSM)* (including the double-layer on LSM side)
+  - *M2 = LSM*  => *Z = R_LSM/2*
+  - *M2 = hole* => *Z = R_LSM/2*
+- *M1 = hole* => *Z = R_hole/2*
 
+The factor 1/2 is there so a total resistance through the whole (e. g.) YSZ particle is *R_YSZ*.
 
 ## Installation
 The package can be then installed via 
@@ -65,7 +72,15 @@ using ImageToEIS
 Supposing we have either `material_matrix = [1 1 1; 0 1 2]`(with values in {0,1,2}) of bitmap image *my_image.png* (with colors {yellow, black, white}). In addition, we can specify parameters via pairs. The following are the default parameters:
 
 ```julialang
-physical_parameters = ["R_YSZ" => 100, "R_LSM" => 1, "R_pol" => 40, "C_pol" => 0.001, "R_hole" => 1000000]
+physical_parameters = [ "R_YSZ" => 100, 
+                        "R_pol_YSZ" => 10, 
+                        "C_pol_YSZ" => 0.001, 
+                        #
+                        "R_LSM" => 1, 
+                        "R_pol_LSM" => 40, 
+                        "C_pol_LSM" => 0.005, 
+                        #
+                        "R_hole" => 1000000]
 ```
 
 If less parameters are specified, the others are supposed to be default, i.e.
@@ -120,6 +135,7 @@ Practically useful keyword parameters are
   - if `= "some_file.z"` : exports to this file
   - if `= "!use_file_name"` : this option is valid only when the function `image_to_EIS` was **called with a path of image**, e. g. "images/geometry.png"
   and it means that z_file will have a form "images/geometry.z", i. e. changes only the extension to ".z"
+- 
 
 Advanced keyword parameters are 
 
