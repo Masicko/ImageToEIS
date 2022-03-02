@@ -88,14 +88,14 @@ Practically useful keyword parameters are
   - `= "two_point_extrapolation"` : the simulation is run only for `f_list = [0.001, 1000]` yielding two impedances, 
       R-RC circuit is fitted to the two computed impedances. The output Z_list is computed using this R-RC circuit for 
       frequencies in TPE_f_list 
-  - `= "TPE"` : a shortcut for "two_point_extrapolation" with the same meaning
+  - default value is `= "TPE"` : which is a shortcut for "two_point_extrapolation" with the same meaning
 - `TPE_f_list = [2.0^n for n in (-5 : 0.5 : 15)]` 
 - `pyplot = true` : if *false*, no Nyquist plot is plotted
-- `export_R_RC = true` : if *true*, the output of `image_to_EIS` is a tripple (R_ohm, R_pol, C_pol) from R-RC circuit
+- `export_R_RC = false` : if *true*, the output of function `image_to_EIS` is a tripple (R_ohm, R_pol, C_pol) from R-RC circuit
 - `export_z_file = ""` : decides whether a standard file for z_view is exported
   - default value is `= ""`, which means *do nothing*
   - if `= "some_file.z"` : exports to this file
-  - if `= "!use_file_name"` : this option is valid only when the function `image_to_EIS` was **called with a path of file**, e. g. "images/geometry.png"
+  - if `= "!use_file_name"` : this option is valid only when the function `image_to_EIS` was **called with a path of image**, e. g. "images/geometry.png"
   and it means that z_file will have a form "images/geometry.z", i. e. changes only the extension to ".z"
 
 Advanced keyword parameters are 
@@ -105,6 +105,17 @@ Advanced keyword parameters are
   - if `= false` : the system of equations is solved by a direct solver
   - if `= true` : the system is solved by iterative solver using Biconjugate gradient stabilized method
 
+
+### Example
+
+```julialang
+image_to_EIS("src/geometry_10x10.png", 
+              ["R_YSZ" => 73],
+              #
+              export_z_file="test.z", 
+              export_R_RC=true,
+              )
+```
 
 
 
