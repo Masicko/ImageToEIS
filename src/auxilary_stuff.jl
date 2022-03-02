@@ -28,6 +28,10 @@ function get_R_RC_prms_from_2Z(omegas, Zs)
   a1, b1 = real(Zs[1]), imag(Zs[1])
   a2, b2 = real(Zs[2]), imag(Zs[2])
   
+  tol = 1.0e-8
+  if abs(a1 - a2) < tol
+    return throw(Exception)
+  end
   
   
   A = a1-a2

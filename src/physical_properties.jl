@@ -8,7 +8,7 @@ Base.@kwdef mutable struct parameters
     R_LSM::Float64 = 1
     R_pol::Float64 = 40
     C_pol::Float64 = 0.001
-    R_dira::Float64 = 1000000
+    R_hole::Float64 = 1000000
 end
 
 function get_Z_entry_from_material_matrix_codes(n1, n2, p::parameters)
@@ -24,7 +24,7 @@ function get_Z_entry_from_material_matrix_codes(n1, n2, p::parameters)
     elseif  n1 == i_YSZ
             return "p.R_YSZ/2"
     elseif  n1 == i_dira
-            return "p.R_dira/2"
+            return "p.R_hole/2"
     else
         println("ERROR: get_Z_entry...")
     end    

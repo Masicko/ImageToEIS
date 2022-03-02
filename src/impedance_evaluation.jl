@@ -53,7 +53,7 @@ function image_to_EIS(
             iterative_solver = false,
             verbose = false,
             pyplot=true,
-            export_R_RC=true,
+            return_R_RC=false,
             export_z_file=""
             #export_z_file="!use_file_name"
             )
@@ -79,9 +79,9 @@ function image_to_EIS(
   end
   
   extract_R_RC = false
-  if export_R_RC || two_point_extrapolation
+  if return_R_RC || two_point_extrapolation
     extract_R_RC = true
-  end
+  end  
   
   params = get_prms_from_pairs(prms_pairs)         
   
@@ -111,18 +111,24 @@ function image_to_EIS(
   
   
   
-  if extract_R_RC
+  if extract_R_RC 
+    R_ohm, R, C = (1.0, 1.0, 1.0)
     if length(f_list) < 2
       println("ERROR: extract R_ohm, R, C: length(f_list) < 2, $(length(f_list)) < 2")
       return
     else
       omegas = 2*pi .* [f_list[1], f_list[end]]
       Zs = [Z_list[1], Z_list[end]]
-      R_ohm, R, C = get_R_RC_prms_from_2Z(omegas, Zs)    
+      try
+        R_ohm, R, C = get_R_RC_prms_from_2Z(omegas, Zs)      
+      catch        
+        println("ERROR: R_RC circuit evaluation failed for (Z1, Z2) = $(Zs)  ... returning (f_list, Z_list)\n")
+        extract_R_RC = false
+      end      
     end
   end
   
-  if two_point_extrapolation        
+  if two_point_extrapolation && extract_R_RC
     f_list = TPE_f_list
     Z_list = get_Z_from_R_RC(f_list, R_ohm, R, C)
   end
@@ -142,7 +148,7 @@ function image_to_EIS(
     export_EIS_to_Z_file(export_z_file, f_list, Z_list)
   end
   
-  if extract_R_RC && export_R_RC
+  if extract_R_RC && return_R_RC
     return R_ohm, R, C
   else
     return f_list, Z_list  

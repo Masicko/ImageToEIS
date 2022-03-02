@@ -39,14 +39,14 @@ The each impedance *Z* is spedified using the information about starting materia
 
 - *M1 = YSZ* => *Z1 = R_YSZ/2*    (factor 1/2 is there so a total resistance through the whole YSZ particle is *R_YSZ*)
 - *M1 = hole* => *Z1 = R_hole/2*
-- *M1 = LSM* 
+- *M1 = LSM/2*
   - *M2 = YSZ*  => *Z1 = R_LSM/2 + Z_RC(R_pol, C_pol)* (including the double-layer)
   - *M2 = LSM*  => *Z1 = R_LSM/2*
   - *M2 = hole* => *Z1 = R_LSM/2*
 
 
 ## Installation
-The package can be then installed using 
+The package can be then installed via 
 ```julialang
 ] add https://github.com/Masicko/ImageToEIS.jl
 ```
@@ -54,12 +54,18 @@ The package can be then installed using
 
 ## Usage
 
+Before using the package, you have to execute
+
+```julialang
+using ImageToEIS
+```
+
 ### Basics
 
 Supposing we have either `material_matrix = [1 1 1; 0 1 2]`(with values in {0,1,2}) of bitmap image *my_image.png* (with colors {yellow, black, white}). In addition, we can specify parameters via pairs. The following are the default parameters:
 
 ```julialang
-physical_parameters = ["R_YSZ" => 100, "R_LSM" => 1, "R_pol" => 40, "C_pol" => 0.001, "R_dira" => 1000000]
+physical_parameters = ["R_YSZ" => 100, "R_LSM" => 1, "R_pol" => 40, "C_pol" => 0.001, "R_hole" => 1000000]
 ```
 
 If less parameters are specified, the others are supposed to be default, i.e.
@@ -69,13 +75,28 @@ physical_parameters = ["R_YSZ" => 73]
 ```
 
 The core function is
+
 ```julialang
 f_list, Z_list = image_to_EIS(material_matrix, physical_parameters)
 ```
+
 or using path to image file
 
 ```julialang
 f_list, Z_list = image_to_EIS("images/geometry.png", physical_parameters)
+```
+
+or specifying parameters in a function call 
+
+```julialang
+f_list, Z_list = image_to_EIS("images/geometry.png", ["R_YSZ" => 73])
+```
+
+or without specifying parameters
+
+
+```julialang
+f_list, Z_list = image_to_EIS("images/geometry.png")
 ```
 
 which returns (by default) frequencies `f_list` for which impedances `Z_list` are computed.
@@ -91,7 +112,9 @@ Practically useful keyword parameters are
   - default value is `= "TPE"` : which is a shortcut for "two_point_extrapolation" with the same meaning
 - `TPE_f_list = [2.0^n for n in (-5 : 0.5 : 15)]` 
 - `pyplot = true` : if *false*, no Nyquist plot is plotted
-- `export_R_RC = false` : if *true*, the output of function `image_to_EIS` is a tripple (R_ohm, R_pol, C_pol) from R-RC circuit
+- `return_R_RC = false` :
+  - if `= true` : the output of function `image_to_EIS` is a tripple (R_ohm, R_pol, C_pol) from R-RC circuit
+  - if `= false` : the output is a tuple `(f_list, Z_list)`
 - `export_z_file = ""` : decides whether a standard file for z_view is exported
   - default value is `= ""`, which means *do nothing*
   - if `= "some_file.z"` : exports to this file
@@ -109,12 +132,12 @@ Advanced keyword parameters are
 ### Example
 
 ```julialang
-image_to_EIS("src/geometry_10x10.png", 
-              ["R_YSZ" => 73],
-              #
-              export_z_file="test.z", 
-              export_R_RC=true,
-              )
+image_to_EIS([1 1 1; 0 1 2], 
+                ["R_YSZ" => 73],
+                #
+                export_z_file="test.z", 
+                return_R_RC=true,
+                )
 ```
 
 
