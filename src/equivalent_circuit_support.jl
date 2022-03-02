@@ -28,14 +28,13 @@ function get_R_RC_prms_from_2Z(omegas, Zs)
   a1, b1 = real(Zs[1]), imag(Zs[1])
   a2, b2 = real(Zs[2]), imag(Zs[2])
   
-  tol = 1.0e-8
-  if abs(a1 - a2) < tol
+  tol = 1.0e-4
+  if abs(a1 - a2) < tol*(a1+a2)/2
     R_ohm = a1
     R = 0
     C = 0
   else
-    
-    
+        
     A = a1-a2
     B = ((a1^2 + b1^2) - (a2^2 + b2^2))
     C = a2*(a1^2 + b1^2) - a1*(a2^2 + b2^2)
