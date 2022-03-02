@@ -52,13 +52,14 @@ function par_study(;
     
     res = []    
     for i in 1:repeted_trials
-      push!(res, 
+      push!(res,
         image_to_EIS( rand(
                           generate_random_specification(LSM_ratio, hole_ratio), 
                           dimensions...
                       ),
                       return_R_RC=true, 
-                      ["R_pol_YSZ"=> 0.0]
+                      ["R_pol_YSZ"=> 0.0],
+                      pyplot=false
         )
       )
     end
@@ -75,15 +76,15 @@ end
 function plot_par_study_results(x, R, Rp, Cp)
   figure(5)
   title("R")
-  plot(x, R)
+  plot(x, [sum(R[n]) for n in 1:length(R)])
   
   figure(6)
   title("R_pol")
-  plot(x, Rp)
+  plot(x, [sum(R[n]) for n in 1:length(R)])
   
   figure(7)
   title("C_pol")
-  plot(x, Cp)  
+  plot(x, [sum(R[n]) for n in 1:length(R)])
 end
 
 
