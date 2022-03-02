@@ -69,7 +69,12 @@ using ImageToEIS
 
 ### Basics
 
-Supposing we have either `material_matrix = [1 1 1; 0 1 2]`(with values in {0,1,2}) of bitmap image *my_image.png* (with colors {yellow, black, white}). In addition, we can specify parameters via pairs. The following are the default parameters:
+Supposing we have either 
+
+- `material_matrix = [1 1 1; 0 1 2]`(with values in {0,1,2}) or 
+- bitmap image *my_image.png* (with colors {yellow, black, white}). 
+
+In addition, we can specify parameters as a set of pairs. The following are the default parameters:
 
 ```julialang
 physical_parameters = [ "R_YSZ" => 100, 

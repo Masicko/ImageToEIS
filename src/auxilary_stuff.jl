@@ -30,24 +30,25 @@ function get_R_RC_prms_from_2Z(omegas, Zs)
   
   tol = 1.0e-8
   if abs(a1 - a2) < tol
-    return throw(Exception)
+    R_ohm = a1
+    R = 0
+    C = 0
+  else
+    
+    
+    A = a1-a2
+    B = ((a1^2 + b1^2) - (a2^2 + b2^2))
+    C = a2*(a1^2 + b1^2) - a1*(a2^2 + b2^2)
+        
+    D = B^2 - 4*A*C
+    
+    s1 = (-B + sqrt(D))/   
+            (2*A)
+    
+    R_ohm = -s1  
+    R, C = get_RC_prms_from_Z(omegas[1], Zs[1] - R_ohm)
+    #get_RC_prms_from_Z(omegas[2], Zs[2] - R_ohm)
   end
-  
-  
-  A = a1-a2
-  B = ((a1^2 + b1^2) - (a2^2 + b2^2))
-  C = a2*(a1^2 + b1^2) - a1*(a2^2 + b2^2)
-      
-  D = B^2 - 4*A*C
-  
-  s1 = (-B + sqrt(D))/   
-          (2*A)
-#   s2 = (-B - sqrt(D))/   
-#         (2*A)
-  
-  R_ohm = -s1  
-  R, C = get_RC_prms_from_Z(omegas[1], Zs[1] - R_ohm)
-  #get_RC_prms_from_Z(omegas[2], Zs[2] - R_ohm)
   
   return R_ohm, R, C
 end
