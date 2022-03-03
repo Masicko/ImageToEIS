@@ -5,7 +5,7 @@ const i_hole = 2
 
 Base.@kwdef mutable struct parameters        
     R_YSZ::Float64 = 100
-    R_pol_YSZ::Float64 = 10
+    R_pol_YSZ::Float64 = 0
     C_pol_YSZ::Float64 = 0.001
     #
     R_LSM::Float64 = 1
@@ -61,4 +61,8 @@ function file_to_matrix(path="src/geometry.png")
     end
   end
   return m
+end
+
+function matrix_to_file(path, matrix)
+  #todo
 end

@@ -78,7 +78,7 @@ In addition, we can specify parameters as a set of pairs. The following are the 
 
 ```julialang
 physical_parameters = [ "R_YSZ" => 100, 
-                        "R_pol_YSZ" => 10, 
+                        "R_pol_YSZ" => 0, 
                         "C_pol_YSZ" => 0.001, 
                         #
                         "R_LSM" => 1, 
@@ -140,7 +140,8 @@ Practically useful keyword parameters are
   - if `= "some_file.z"` : exports to this file
   - if `= "!use_file_name"` : this option is valid only when the function `image_to_EIS` was **called with a path of image**, e. g. "images/geometry.png"
   and it means that z_file will have a form "images/geometry.z", i. e. changes only the extension to ".z"
-- 
+- `save_also_image = false`
+  - if `= true` : if `export_z_file != ""` and `image_to_EIS` was **called with a path of image**, than the input image is copied with a name of `export_z_file` but with the extension of *input_image*
 
 Advanced keyword parameters are 
 
@@ -153,11 +154,12 @@ Advanced keyword parameters are
 ### Example
 
 ```julialang
-image_to_EIS([1 1 1; 0 1 2], 
+image_to_EIS(   [1 1 1; 0 1 2], 
                 ["R_YSZ" => 73],
                 #
                 export_z_file="test.z", 
                 return_R_RC=true,
+                save_also_image=true
                 )
 ```
 

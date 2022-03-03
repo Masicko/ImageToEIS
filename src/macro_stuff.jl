@@ -24,6 +24,8 @@ end
 
 
 
+
+
 function par_study(;
                     LSM_ratio_list = collect( 0 : 0.2 : 1.0),
                     hole_ratio = 0.2,
@@ -72,19 +74,99 @@ function par_study(;
 end
 
 
+function run_par_study()
+  #todo
+end
 
-function plot_par_study_results(x, R, Rp, Cp)
+
+function evaluate_slurm_results(dir="src/")
+  
+  function get_the_strs_from_file(path)
+    output_line = ""
+    hole_ratio_string = ""
+    open(path) do f
+      for line in eachline(f)                 
+        if length(line) >= 3 && line[1:3] == "Ima"              
+          output_line = deepcopy(line)         
+        elseif length(line) >= 10 && line[1:10] == "hole_ratio"
+          hole_ratio_string = deepcopy(line)
+        end
+      end
+      end
+    return hole_ratio_string, output_line
+  end
+  
+  dict_for_hole_ratios = Dict()
+  
+  hole_ratio_identifier = ""
+  for file in readdir(dir)
+    if length(file) >= 6 && file[1:6] == "slurm-"
+      hole_ratio_string, my_str = get_the_strs_from_file(dir*file)
+      if hole_ratio_string == "" || my_str == ""
+        println("file $(file) skipped")
+      else        
+        last_is_equal = findall(x -> x == '=', my_str)[end]
+        
+        #head = my_str[1:last_is_equal-1]
+        #first_bracket = findall(x -> x == '(', head)[1]
+        
+        ##############################
+        # has fields (x, R, Rp, Cp)
+        # -> x = LSM_ratio_list
+        # -> R = [R(x) for x in LSM_ratio_list]
+        output_tuple = eval(Meta.parse(my_str[last_is_equal + 1 : end]))
+        
+        
+        hole_ratio_identifier = string(
+            eval(Meta.parse(
+            split(hole_ratio_string, '=')[end]
+          ))
+        )
+        
+              
+        #@show dict_for_hole_ratios
+        if haskey(dict_for_hole_ratios, hole_ratio_identifier)
+          recent_tuple = dict_for_hole_ratios[hole_ratio_identifier]
+          if recent_tuple[1] != output_tuple[1]
+            println("ERROR: LSM_ratio_list mismatch: $(recent_tuple[1]) != $(output_tuple[1])")
+          end
+          for (i, ratio) in enumerate(output_tuple[1])
+            for prm_identifier in 2:4
+              append!(recent_tuple[prm_identifier][i], output_tuple[prm_identifier][i])
+            end
+          end
+        else                
+          dict_for_hole_ratios[hole_ratio_identifier] = output_tuple        
+        end
+      end
+    end
+  end
+  
+  return dict_for_hole_ratios
+end
+
+
+
+function plot_par_study_results(x, R, Rp, Cp, label)
   figure(5)
-  title("R")
-  plot(x, [sum(R[n]) for n in 1:length(R)])
+  suptitle("YSZ-LSM-hole 50x50 random distribution test - 10 repetitions for each conditions")
+  subplot(221)
+  plot(x, [sum(R[n])/length(R[n]) for n in 1:length(R)], label=label, "-x")
+  xlabel("LSM ratio")
+  ylabel("R_ohm")
+  legend()
   
-  figure(6)
-  title("R_pol")
-  plot(x, [sum(R[n]) for n in 1:length(R)])
+  subplot(223)    
+  plot(x, [sum(Rp[n]/length(Rp[n])) for n in 1:length(R)], label=label, "-x")
+  xlabel("LSM ratio")
+  ylabel("R_pol")
+  legend()
   
-  figure(7)
-  title("C_pol")
-  plot(x, [sum(R[n]) for n in 1:length(R)])
+  subplot(122)  
+  plot(x, [sum(Cp[n]/length(Cp[n])) for n in 1:length(R)], label=label, "-x")
+  xlabel("LSM ratio")
+  ylabel("C_pol")
+  legend()
 end
 
 
