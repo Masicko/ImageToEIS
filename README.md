@@ -128,9 +128,10 @@ Practically useful keyword parameters are
 - `f_list = [1, 10, 100]` : specification of array of frequencies for which EIS simulation will run. Good format is `= [2.0^n for n in (-5 : 0.5 : 15)]`.
   - `= "two_point_extrapolation"` : the simulation is run only for `f_list = [0.001, 1000]` yielding two impedances, 
       R-RC circuit is fitted to the two computed impedances. The output Z_list is computed using this R-RC circuit for 
-      frequencies in TPE_f_list 
+      frequencies in TPE_f_list. When using this option, a warning is printed to output.
   - default value is `= "TPE"` : which is a shortcut for "two_point_extrapolation" with the same meaning
 - `TPE_f_list = [2.0^n for n in (-5 : 0.5 : 15)]` 
+- `TPE_warning = true` : if true and `"TPE" = true`, a warning about extrapolation is printed to standard output. 
 - `pyplot = true` : if *false*, no Nyquist plot is plotted
 - `return_R_RC = false` :
   - if `= true` : the output of function `image_to_EIS` is a tripple (R_ohm, R_pol, C_pol) from R-RC circuit

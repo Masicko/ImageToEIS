@@ -28,6 +28,7 @@ function image_to_EIS(
             #            
             f_list="TPE",
             TPE_f_list = [2.0^n for n in -5 : 0.5 : 15],
+            TPE_warning = true,
             #f_list=[2.0^i for i in -3:10], 
             #            
             complex_type=ComplexF64,
@@ -82,9 +83,10 @@ function image_to_EIS(
     end
   end
   
-  if two_point_extrapolation && extract_R_RC
+  if two_point_extrapolation && extract_R_RC    
     f_list = TPE_f_list
     Z_list = get_Z_from_R_RC(f_list, R_ohm, R, C)
+    TPE_warning && println("WARNING: TPE (two_point_extrapolation) has been used!")
   end
 
   pyplot && nyquistPlot(Z_list)
