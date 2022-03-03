@@ -143,6 +143,9 @@ Practically useful keyword parameters are
   and it means that z_file will have a form "images/geometry.z", i. e. changes only the extension to ".z"
 - `save_also_image = false`
   - if `= true` : if `export_z_file != ""` and `image_to_EIS` was **called with a path of image**, than the input image is copied with a name of `export_z_file` but with the extension of *input_image*
+- `store_R_RC = false` : turns on the evaluation of R_RC element from two points of computed impedance and write the output in a specified file
+  - if `= "storage.txt" : append a line formated as <dateTtime> tab <input_file_name> tab <R_ohm> tab <R_pol> tab <C_pol>
+  - if `= "storage.csv" : csv extension works too
 
 Advanced keyword parameters are 
 

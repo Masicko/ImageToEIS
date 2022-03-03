@@ -37,8 +37,10 @@ function image_to_EIS(
             pyplot=true,
             return_R_RC=false,
             export_z_file="",
-            save_also_image=false
-            #export_z_file="!use_file_name"
+            save_also_image=false,
+            #export_z_file="!use_file_name",
+            
+            store_R_RC=""
             )
   
   input_path, material_matrix = get_material_matrix(matrix_input)
@@ -50,9 +52,9 @@ function image_to_EIS(
   end
   
   extract_R_RC = false
-  if return_R_RC || two_point_extrapolation
+  if return_R_RC || two_point_extrapolation || store_R_RC
     extract_R_RC = true
-  end  
+  end
                     
   f_list, Z_list =  matrix_to_impedance(
     material_matrix,         
@@ -90,6 +92,16 @@ function image_to_EIS(
   end
 
   pyplot && nyquistPlot(Z_list)
+  
+  if store_R_RC != "" && extract_R_RC
+    open(store_R_RC, "a") do f
+      write(f, @sprintf("%s\t%s\t%E\t%E\t%E\n", 
+        Dates.now(), 
+        (input_path == "" ? "<matrix_input>" : input_path ), 
+        R_ohm, R, C)
+      )
+    end
+  end
   
   if export_z_file == "!use_file_name"
     if input_path != ""      
