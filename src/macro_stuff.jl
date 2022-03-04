@@ -60,16 +60,19 @@ function par_study(;
                           generate_random_specification(LSM_ratio, hole_ratio), 
                           dimensions...
                       ),
+                      parameters,
+                      #
                       return_R_RC=true, 
                       TPE_warning=false,                      
-                      pyplot=false 
+                      pyplot=false,
+                      
         )
       )
     end
     
-    push!(R_list, [a[1] for a in res]/repeted_trials)
-    push!(R_pol_list, [a[2] for a in res]/repeted_trials)
-    push!(C_pol_list, [a[3] for a in res]/repeted_trials)     
+    push!(R_list, [a[1] for a in res])
+    push!(R_pol_list, [a[2] for a in res])
+    push!(C_pol_list, [a[3] for a in res])     
   end
   return LSM_ratio_list, R_list, R_pol_list, C_pol_list
 end
@@ -80,78 +83,13 @@ function run_par_study()
 end
 
 
-function evaluate_slurm_results(dir="src/")
-  
-  function get_the_strs_from_file(path)
-    output_line = ""
-    hole_ratio_string = ""
-    open(path) do f
-      for line in eachline(f)                 
-        if length(line) >= 3 && line[1:3] == "Ima"              
-          output_line = deepcopy(line)         
-        elseif length(line) >= 10 && line[1:10] == "hole_ratio"
-          hole_ratio_string = deepcopy(line)
-        end
-      end
-      end
-    return hole_ratio_string, output_line
-  end
-  
-  dict_for_hole_ratios = Dict()
-  
-  hole_ratio_identifier = ""
-  for file in readdir(dir)
-    if length(file) >= 6 && file[1:6] == "slurm-"
-      hole_ratio_string, my_str = get_the_strs_from_file(dir*file)
-      if hole_ratio_string == "" || my_str == ""
-        println("file $(file) skipped")
-      else        
-        last_is_equal = findall(x -> x == '=', my_str)[end]
-        
-        #head = my_str[1:last_is_equal-1]
-        #first_bracket = findall(x -> x == '(', head)[1]
-        
-        ##############################
-        # has fields (x, R, Rp, Cp)
-        # -> x = LSM_ratio_list
-        # -> R = [R(x) for x in LSM_ratio_list]
-        output_tuple = eval(Meta.parse(my_str[last_is_equal + 1 : end]))
-        
-        
-        hole_ratio_identifier = string(
-            eval(Meta.parse(
-            split(hole_ratio_string, '=')[end]
-          ))
-        )
-        
-              
-        #@show dict_for_hole_ratios
-        if haskey(dict_for_hole_ratios, hole_ratio_identifier)
-          recent_tuple = dict_for_hole_ratios[hole_ratio_identifier]
-          if recent_tuple[1] != output_tuple[1]
-            println("ERROR: LSM_ratio_list mismatch: $(recent_tuple[1]) != $(output_tuple[1])")
-          end
-          for (i, ratio) in enumerate(output_tuple[1])
-            for prm_identifier in 2:4
-              append!(recent_tuple[prm_identifier][i], output_tuple[prm_identifier][i])
-            end
-          end
-        else                
-          dict_for_hole_ratios[hole_ratio_identifier] = output_tuple        
-        end
-      end
-    end
-  end
-  
-  return dict_for_hole_ratios
-end
 
 
-
-function plot_par_study_results(x, R, Rp, Cp, label)
+function plot_par_study_results(x, R, Rp, Cp, label="")
   figure(5)
   suptitle("YSZ-LSM-hole 50x50 random distribution test - 10 repetitions for each conditions")
   subplot(221)
+    
   plot(x, [sum(R[n])/length(R[n]) for n in 1:length(R)], label=label, "-x")
   xlabel("LSM ratio")
   ylabel("R_ohm")
@@ -169,6 +107,94 @@ function plot_par_study_results(x, R, Rp, Cp, label)
   ylabel("C_pol")
   legend()
 end
+
+
+function evaluate_slurm_results(dir="src/", changing_prm_name="hole_ratio"; plot=false, plot_range = nothing )
+  
+  function get_the_strs_from_file(path)
+    output_line = ""
+    changing_prm_direct_string = ""
+    open(path) do f
+      for line in eachline(f)         
+        if length(line) >= 3 && line[1:3] == "Ima"              
+          output_line = deepcopy(line)         
+        elseif (length(line) >= length(changing_prm_name) &&
+                line[1:length(changing_prm_name)] == changing_prm_name)
+          changing_prm_direct_string = deepcopy(line)
+        elseif (length(line) >= length("INPUT") &&
+                line[1:length("INPUT")] == "INPUT")
+          eval(Meta.parse(line))          
+        end
+      end
+    end
+    return changing_prm_direct_string, output_line
+  end
+  
+  output_dict = Dict()
+    
+  for file in readdir(dir)
+    if length(file) >= 6 && file[1:6] == "slurm-"
+      changing_prm_direct_string, my_str = get_the_strs_from_file(dir*file)
+      if my_str == ""
+        println("file $(file) skipped")
+      else        
+        last_is_equal = findall(x -> x == '=', my_str)[end]        
+        
+        if changing_prm_direct_string != ""          
+          prm_value = eval(
+              Meta.parse(
+                split(changing_prm_direct_string, '=')[end]
+              )
+          )                        
+        else
+          head = my_str[1:last_is_equal-1]
+          first_bracket = findall(x -> x == '(', head)[1]
+          #
+          NT_prms = eval(Meta.parse(head[first_bracket : end]))
+          physical_prms = NT_prms[:parameters]
+          for pair in physical_prms
+            if pair[1] == changing_prm_name
+              prm_value = pair[2]
+            end
+          end                                        
+        end
+        
+        ##############################
+        # has fields (x, R, Rp, Cp)
+        # -> x = LSM_ratio_list
+        # -> R = [R(x) for x in LSM_ratio_list]        
+        output_tuple = eval(Meta.parse(my_str[last_is_equal + 1 : end]))
+        prm_value_identifier = prm_value
+        
+        #@show output_dict        
+        if haskey(output_dict, prm_value_identifier)
+          recent_tuple = output_dict[prm_value_identifier]
+          if recent_tuple[1] != output_tuple[1]
+            println("ERROR: LSM_ratio_list mismatch: $(recent_tuple[1]) != $(output_tuple[1])")
+          end
+          for (i, ratio) in enumerate(output_tuple[1])
+            for prm_identifier in 2:4
+              append!(recent_tuple[prm_identifier][i], output_tuple[prm_identifier][i])
+            end
+          end
+        else                
+          output_dict[prm_value_identifier] = output_tuple        
+        end
+      end
+    end
+  end
+
+  
+  if plot 
+    for plotted_prm in sort!([deepcopy(keys(output_dict))...])
+      key = plotted_prm 
+      ImageToEIS.plot_par_study_results(output_dict[key]..., "$(changing_prm_name) = $(key)")
+    end
+  end
+  
+  return output_dict
+end
+
 
 
 
