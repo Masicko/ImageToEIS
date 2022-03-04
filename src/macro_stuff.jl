@@ -101,10 +101,16 @@ function plot_par_study_results(x, R, Rp, Cp, label="")
   ylabel("R_pol")
   legend()
   
-  subplot(122)  
+  subplot(222)  
   plot(x, [sum(Cp[n]/length(Cp[n])) for n in 1:length(R)], label=label, "-x")
   xlabel("LSM ratio")
   ylabel("C_pol")
+  legend()
+  
+  subplot(224)  
+  plot(x, [sum(R[n])/length(R[n]) for n in 1:length(R)] .+ [sum(Rp[n]/length(Rp[n])) for n in 1:length(R)], label=label, "-x")
+  xlabel("LSM ratio")
+  ylabel("R_tot")
   legend()
 end
 
@@ -169,16 +175,23 @@ function evaluate_slurm_results(dir="src/", changing_prm_name="hole_ratio"; plot
         #@show output_dict        
         if haskey(output_dict, prm_value_identifier)
           recent_tuple = output_dict[prm_value_identifier]
-          if recent_tuple[1] != output_tuple[1]
+          if recent_tuple[1] != convert.(Float32, output_tuple[1])
             println("ERROR: LSM_ratio_list mismatch: $(recent_tuple[1]) != $(output_tuple[1])")
           end
           for (i, ratio) in enumerate(output_tuple[1])
-            for prm_identifier in 2:4
+            for prm_identifier in 2:4                            
               append!(recent_tuple[prm_identifier][i], output_tuple[prm_identifier][i])
             end
           end
-        else                
-          output_dict[prm_value_identifier] = output_tuple        
+        else                          
+          output_dict[prm_value_identifier] = map(x ->  map(
+                                                          y -> convert.(Float32, y)
+                                                          ,
+                                                          x
+                                                        )                                                        
+                                                  , 
+                                                  output_tuple
+                                              )
         end
       end
     end
