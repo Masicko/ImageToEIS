@@ -145,8 +145,8 @@ Practically useful keyword parameters are
   - if `= true` : if `export_z_file != ""` and `image_to_EIS` was **called with a path of image**, than the input image is copied with a name of `export_z_file` but with the extension of *input_image*
 - `store_R_RC` : turns on the evaluation of R_RC element from two points of computed impedance and append the output to a specified file
   - if `= ""` : means *do nothing* (which is default)
-  - if `= "storage.txt" : append a line formated as <dateTtime> tab <input_file_name> tab <R_ohm> tab <R_pol> tab <C_pol> . If the function was called with matrix (not the input path to file), `"<matrix_input>"` is written instead of <input_file_name>.
-  - if `= "storage.csv" : csv extension works too
+  - if `= "storage.txt"` : append a line formated as <dateTtime> tab <input_file_name> tab <R_ohm> tab <R_pol> tab <C_pol> . If the function was called with a matrix (not an path to file), `"<matrix_input>"` is written instead of <input_file_name>.
+  - if `= "storage.csv"` : csv extension works too
 
 Advanced keyword parameters are 
 

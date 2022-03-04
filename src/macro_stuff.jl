@@ -31,6 +31,7 @@ function par_study(;
                     hole_ratio = 0.2,
                     dimensions = (20,20),
                     repeted_trials = 10,
+                    parameters = []
   )
   function generate_random_specification(LSM_ratio, hole_ratio)
     v = Array{Int16}(undef, 100)    
@@ -60,8 +61,8 @@ function par_study(;
                           dimensions...
                       ),
                       return_R_RC=true, 
-                      ["R_pol_YSZ"=> 0.0],
-                      pyplot=false
+                      TPE_warning=false,                      
+                      pyplot=true 
         )
       )
     end
