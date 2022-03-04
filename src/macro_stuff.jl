@@ -62,7 +62,7 @@ function par_study(;
                       ),
                       return_R_RC=true, 
                       TPE_warning=false,                      
-                      pyplot=true 
+                      pyplot=false 
         )
       )
     end
