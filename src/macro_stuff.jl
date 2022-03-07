@@ -1,3 +1,4 @@
+# time testing
 function plot_results(n_list, timings)
   figure(1)
   title("Speed of ImageToEIS")  
@@ -25,7 +26,7 @@ end
 
 
 
-
+# par_study
 function par_study(;
                     LSM_ratio_list = collect( 0 : 0.2 : 1.0),
                     hole_ratio = 0.2,
@@ -33,18 +34,6 @@ function par_study(;
                     repeted_trials = 10,
                     parameters = []
   )
-  function generate_random_specification(LSM_ratio, hole_ratio)
-    v = Array{Int16}(undef, 100)    
-    
-      
-    hole_length = Int32(round(hole_ratio*100))
-    LSM_length = Int32(round((1 - hole_ratio)*LSM_ratio*100))        
-    
-    v .= i_YSZ
-    v[1 : hole_length] .= i_hole
-    v[hole_length + 1 : hole_length + LSM_length] .= i_LSM
-    return v
-  end
   
   R_list = []
   R_pol_list = []

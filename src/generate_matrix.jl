@@ -29,7 +29,7 @@ function generate_submatrix_to_matrix(matrix, right_lower::Union{Tuple, Array}, 
   generate_submatrix_to_matrix(matrix, (1,1), right_lower::Union{Tuple, Array}, hole_ratio::Float64, LSM_ratio::Float64)
 end
 
-function get_default_single_matrix_list()
+function get_default_submatrix_list()
   # 1 item in the resulting list is
   # 
   # left upper, right lower corner, hole_ratio, LSM_ratio
@@ -51,9 +51,9 @@ function get_default_single_matrix_list()
   ]
 end
 
-function generate_matrix(single_matrix_list::Array=get_default_single_matrix_list())
+function generate_matrix(submatrix_list::Array=get_default_submatrix_list())
   max_height, max_width = -1, -1
-  for submatrix in single_matrix_list
+  for submatrix in submatrix_list
     s = submatrix[2]
     if s[1] > max_height
       max_height = s[1]
@@ -66,13 +66,13 @@ function generate_matrix(single_matrix_list::Array=get_default_single_matrix_lis
   output_matrix = Matrix(undef, max_height, max_width)
   output_matrix .= -1
 
-  for submatrix in single_matrix_list 
+  for submatrix in submatrix_list 
     generate_submatrix_to_matrix(output_matrix, submatrix...)    
   end 
-  invalid_single_matrix_list = false
-  foreach(x -> x==-1 ?  invalid_single_matrix_list = true : false, output_matrix)
-  if invalid_single_matrix_list
-    println("ERROR: invalid_single_matrix_list input")
+  invalid_submatrix_list = false
+  foreach(x -> x==-1 ?  invalid_submatrix_list = true : false, output_matrix)
+  if invalid_submatrix_list
+    println("ERROR: invalid_submatrix_list input")
     return throw(Exception)
   else
     return output_matrix
@@ -81,9 +81,11 @@ end
 
 
 
-function three_columns_domain(LSM_ratio1, LSM_ratio2, LSM_ratio3; 
+function three_column_domain_template(LSM_ratio1, LSM_ratio2, LSM_ratio3; 
                               #
-                              height_of_contacts=5, positions_of_contacts=[15, 50],
+                              hole_ratio1=0.5, hole_ratio2=0.5, hole_ratio3=0.5,
+                              #                              
+                              positions_of_contacts=[15, 50], height_of_contacts=5, 
                               #
                               column_width = 5,
                               #
@@ -100,15 +102,17 @@ function three_columns_domain(LSM_ratio1, LSM_ratio2, LSM_ratio3;
   
   output = [
     [(1,1), (height, first_block_column), 1.0, 0.5],
-    [(1,first_block_column + 1), (height, second_block_column), 0.2, LSM_ratio1],
-    [(1,second_block_column + 1), (height, third_block_column), 0.2, LSM_ratio2],
-    [(1,third_block_column + 1), (height, fourth_block_column), 0.2, LSM_ratio3],    
+    [(1,first_block_column + 1), (height, second_block_column), hole_ratio1, LSM_ratio1],
+    [(1,second_block_column + 1), (height, third_block_column), hole_ratio2, LSM_ratio2],
+    [(1,third_block_column + 1), (height, fourth_block_column), hole_ratio3, LSM_ratio3],    
     [(1, fourth_block_column + 1), (height, width), 0.0, 1.0]
   ]
   
   # contacts 
   for p_of_contact in positions_of_contacts
-    push!(output, [(p_of_contact, 1), (p_of_contact + height_of_contacts - 1, first_block_column), 0.0, 1.0])
+    push!(output, 
+        [(p_of_contact, 1), (p_of_contact + height_of_contacts - 1, first_block_column), 0.0, 1.0]
+    )
   end
   
   return output
