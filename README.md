@@ -156,21 +156,36 @@ Advanced keyword parameters are
   - if `= false` : the system of equations is solved by a direct solver
   - if `= true` : the system is solved by iterative solver using Biconjugate gradient stabilized method
 
-### Generate random domain with structure
+
+### Real Example
+
+```julialang
+image_to_EIS(   [1 1 1; 0 1 2], 
+                ["R_YSZ" => 73],
+                #
+                export_z_file="test.z", 
+                return_R_RC=true,
+                save_also_image=true,
+                store_R_RC = ""
+                )
+```
+
+
+## Generate random domain with structure
 
 Automated generating of random structure is essential for statistical testing of system behavior. There are a few helping features using two main parameters. 
 
-- `hole_ratio` $\in [0, 1]$ : the ratio of holes over the total points (material points + holes) in the picture. 
-- `LSM_ratio` $\in [0, 1]$ : probability that the material point will be LSM.
+- `hole_ratio` $`\in [0, 1]`$ : the ratio of holes over the total points (material points + holes) in the picture. 
+- `LSM_ratio` $`\in [0, 1]`$ : probability that the material point will be LSM.
 
-#### Simple homogenous matrix
+### Simple homogenous matrix
 The simplest example is a homogenous domain of `dimensions = (m, n)`, where *m* is a number of rows and *n* a number of columns. Matrix of this type can be constructed via
 
 ```julialang
 homogenous_matrix = generate_matrix(dimensions, hole_ratio, LSM_ratio)
 ```
 
-#### Structure using multiple submatrices
+### Structure using multiple submatrices
 For more complicated domains composed of several different homogenous subdomains, there is a possibility to construct appropriate matrix. Suppose we want to construct *m* x *n* matrix consisting of 2 different submatrices. First, a list of submatrices must be created such that one submatrix is represented by its *location* (left upper corner and right lower corner) in the resulting matrix and *hole_ratio* and *LSM_ratio*. 
 
 ```julialang
@@ -188,7 +203,7 @@ two_subdomain_matrix = generate_matrix(submatrix_list)
 
 There can be more subdomains in `submatrix_list`. Dimensions of the resulting `two_subdomain_matrix` is computed as en rectangular envelope of all *locations* in `submatrix_list`. The submatrices can overlap (in this case, the latter has priority in evaluation of matrix), but **every pixel must be covered** by the submatrices.
 
-##### Three column domain
+#### Three column domain template
 There is a template using the upper structure of defying submatrices, which generates a domain of 3 columns with defined material specification (*hole_ratio* and *LSM_ratio*). In addition, there are contacts (of width 1 and optional height) on the left side providing an interesting distribution of electrical current through the system. The right side consists of a continuous one layer of LSM as a connection to conductive electrolyte. The obligate input parameters are 
 
 - `LSM_ratio1`, `LSM_ratio2`, `LSM_ratio3`
@@ -196,19 +211,19 @@ There is a template using the upper structure of defying submatrices, which gene
 Optional parameters (with default values) are 
 
 - `hole_ratio1=0.5, hole_ratio2=0.5, hole_ratio3=0.5`
-- `positions_of_contacts=[15, 50]` : starting row for each a LSM contact 
+- `positions_of_contacts=[15, 50]` : starting row for each LSM contact 
 - `height_of_contacts=5`
 - `column_width=5`
 - `height=70`
 
-in this case, the constats will be between [15, 20] and [50, 55] pixels of the first column while the whole matrix has height of 70 pixels. The submatrix list can be then obtained by function `three_column_domain_template` and then inserted to `generate_matrix`.
+in this default case, the LSM contacts will be between [15, 20] and [50, 55] pixels of the first column while the whole matrix has height of 70 pixels. The submatrix list can be then obtained by function `three_column_domain_template` and then inserted to `generate_matrix`.
 
 ```julialang
 LSM_ratio1 = 0.2
 LSM_ratio2 = 1.0
 LSM_ratio3 = 0.5
 
-template_submatrix_list = three_column_domain_template(LSM_ratio1, LSM_ratio1, LSM_ratio1,                               
+template_submatrix_list = three_column_domain_template(LSM_ratio1, LSM_ratio1, LSM_ratio1,
                                      #                              
                                      column_width = 10,
                                      hole_ratio1 = 0.0, hole_ratio3 = 0.2,
@@ -218,7 +233,7 @@ template_submatrix_list = three_column_domain_template(LSM_ratio1, LSM_ratio1, L
 three_column_matrix = generate_matrix(template_submatrix_list)
 ```
 
-#### Material matrix visualization
+### Material matrix visualization
 
 A material matrix can be saved to a file with specified `path` using `matrix_to_file` function. For example
 
@@ -228,21 +243,7 @@ matrix_to_file("images/three_column_domain.png", three_column_matrix)
 
 !["Three column domain"](images/three_column_domain.png?raw=true )
 
-### Parametric studies
-
-
-### Real Example
-
-```julialang
-image_to_EIS(   [1 1 1; 0 1 2], 
-                ["R_YSZ" => 73],
-                #
-                export_z_file="test.z", 
-                return_R_RC=true,
-                save_also_image=true,
-                store_R_RC = ""
-                )
-```
+## Parametric studies
 
 
 
