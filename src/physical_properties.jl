@@ -45,6 +45,7 @@ function get_Z_entry_from_material_matrix_codes(n1, n2, p::parameters)
 end
 
 
+
 function file_to_matrix(path="src/geometry.png")
   RGB_m = load(path)
   m = Matrix(undef, size(RGB_m)...)
@@ -64,5 +65,13 @@ function file_to_matrix(path="src/geometry.png")
 end
 
 function matrix_to_file(path, matrix)
-  #todo
+  save(path, map(x -> if     x == i_hole
+                   RGB(1, 1, 1)
+                elseif x == i_YSZ
+                   RGB(1, 1, 0)
+                elseif x == i_LSM
+                   RGB(0, 0, 0)
+                end, matrix)
+  )
+  return
 end
