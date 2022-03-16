@@ -40,6 +40,7 @@ function image_to_EIS(
             save_also_image=false,
             #export_z_file="!use_file_name",
             
+            keep_constant_physical_height = true,
             store_R_RC=""
             )
   
@@ -66,6 +67,11 @@ function image_to_EIS(
     iterative_solver = iterative_solver,
     verbose = verbose
   )
+  
+  if keep_constant_physical_height
+    #normalize output
+    Z_list .*= size(material_matrix)[1] / size(material_matrix)[2]
+  end
   
   
   if extract_R_RC 

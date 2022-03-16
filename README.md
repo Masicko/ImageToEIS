@@ -147,7 +147,7 @@ Practically useful keyword parameters are
   - if `= ""` : means *do nothing* (which is default)
   - if `= "storage.txt"` : append a line formated as <dateTtime> tab <input_file_name> tab <R_ohm> tab <R_pol> tab <C_pol> . If the function was called with a matrix (not an path to file), `"<matrix_input>"` is written instead of <input_file_name>.
   - if `= "storage.csv"` : csv extension works too
-- `keep_constant_physical_height` TODO !!!
+- `keep_constant_physical_height = true` : the resulting current is divided by number of rows of input matrix. Therefore, scaling of input matrix does not change the EIS measurement.
 
 Advanced keyword parameters are 
 
@@ -175,8 +175,8 @@ image_to_EIS(   [1 1 1; 0 1 2],
 
 Automated generating of random structure is essential for statistical testing of system behavior. There are a few helping features using two main parameters. 
 
-- `hole_ratio` $`\in [0, 1]`$ : the ratio of holes over the total points (material points + holes) in the picture. 
-- `LSM_ratio` $`\in [0, 1]`$ : probability that the material point will be LSM.
+- `hole_ratio` in [0, 1] : the ratio of holes over the total points (material points + holes) in the picture. 
+- `LSM_ratio` in [0, 1] : probability that the material point will be LSM.
 
 ### Simple homogenous matrix
 The simplest example is a homogenous domain of `dimensions = (m, n)`, where *m* is a number of rows and *n* a number of columns. Matrix of this type can be constructed via

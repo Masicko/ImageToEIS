@@ -23,7 +23,7 @@ export image_to_EIS
 
 include("generate_matrix.jl")
 export generate_matrix
-export three_columns_domain
+export three_column_domain_template
 
 include("macro_stuff.jl")
 
