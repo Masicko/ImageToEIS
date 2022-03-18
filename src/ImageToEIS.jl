@@ -8,6 +8,8 @@ using PyPlot
 using Dates
 using Printf
 using Colors
+using DataFrames
+using CSV
 
 using Base
 
@@ -24,8 +26,10 @@ export image_to_EIS
 include("generate_matrix.jl")
 export generate_matrix
 export three_column_domain_template
+export three_column_domain_matrix
 
 include("macro_stuff.jl")
+export par_study
 
 
 

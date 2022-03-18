@@ -25,12 +25,153 @@ end
 
 
 
+function homogenous_matrix(par_study_prms::Dict)
+  return rand(
+            generate_random_specification(
+              par_study_prms["LSM_ratio"], 
+              par_study_prms["hole_ratio"]
+            ), 
+            par_study_prms["dimensions"]...
+  )
+end
+
+function three_column_domain_matrix(p::Dict)
+  return generate_matrix(
+    three_column_domain_template(p["LSM_ratio1"], p["LSM_ratio2"], p["LSM_ratio3"], 
+                              #
+                              hole_ratio1=p["hole_ratio1"], hole_ratio2=p["hole_ratio2"], hole_ratio3=p["hole_ratio3"],
+                              #                              
+                              positions_of_contacts=p["positions_of_contacts"], height_of_contacts=p["height_of_contacts"], 
+                              #
+                              column_width = p["column_width"],
+                              #
+                              height = p["height"]
+    )
+  )
+end
+
+function three_column_domain_LSM_ratios(p::Dict)
+  return generate_matrix(
+    three_column_domain_template(p["LSM_ratios"]..., 
+                              #
+                              hole_ratio1=p["hole_ratio1"], hole_ratio2=p["hole_ratio2"], hole_ratio3=p["hole_ratio3"],
+                              #                              
+                              positions_of_contacts=p["positions_of_contacts"], height_of_contacts=p["height_of_contacts"], 
+                              #
+                              column_width = p["column_width"],
+                              #
+                              height = p["height"]
+    )
+  )
+end
+
+#
+#
+function for_each_prms_in_prms_lists(prms_lists, perform_generic)
+  function recursive_call(output_set, active_idx)
+    if active_idx > size(prms_lists,1)
+      perform_generic(output_set)
+    else      
+      if typeof(prms_lists[active_idx]) <: Array
+        list_for_iteration = prms_lists[active_idx]
+      else  
+        list_for_iteration = [prms_lists[active_idx]]
+      end
+      for parameter in list_for_iteration
+        recursive_call(push!(deepcopy(output_set),parameter), active_idx + 1)
+      end
+    end
+  end
+  recursive_call([],1)
+  return
+end
+
+
+
+
+function par_study(
+  # if value is array, the parametric study will iterate over it  
+  input_prms_dict = Dict();
+  save_to_file = ""
+  )
+  
+  function extract_physical_parameters(par_study_prms)
+    parameters = []
+    for physical_prms_key in filter( 
+          key -> length(key) > 2 && key[1:2] == "p.",
+          collect(keys(par_study_prms))
+        )
+      push!(parameters, physical_prms_key[3:end] => par_study_prms[physical_prms_key])
+    end   
+    return parameters
+  end
+
+  if typeof(input_prms_dict) <: Vector
+    input_prms_dict = Dict(input_prms_dict)
+  end
+  
+  
+  par_study_prms = Dict{String, Any}(
+    "trials_count" => 2.0,
+  )
+  
+  if !haskey(input_prms_dict, "matrix_template")
+    merge!(par_study_prms,
+      Dict(
+        "hole_ratio" => 0.2,
+        "LSM_ratio" => 0.2,    
+        "dimensions" => (5, 5),
+        "matrix_template" => homogenous_matrix
+      )
+    )
+  end
+  
+  merge!(par_study_prms, input_prms_dict)
+
+  output_data_frame = DataFrame()
+  
+  function execute_for_specific_values(specific_values)
+    local_par_study_prms = Dict(collect(keys(par_study_prms)) .=> specific_values)     
+    local_parameters = extract_physical_parameters(local_par_study_prms)
+      
+    for i in 1:par_study_prms["trials_count"]
+      R, R_pol, C_pol = image_to_EIS(
+                      local_par_study_prms["matrix_template"](local_par_study_prms),
+                      local_parameters,
+                      #
+                      return_R_RC=true, 
+                      TPE_warning=false,                      
+                      pyplot=false,
+                      
+      )
+      
+      append!(output_data_frame, 
+        merge(
+          local_par_study_prms,
+          Dict("trial_number" => i, "R" => R, "R_pol" => R_pol, "C_pol" => C_pol)
+        )
+      )
+    end
+  end
+  
+  for_each_prms_in_prms_lists(
+    collect(values(par_study_prms)), 
+    execute_for_specific_values
+  )
+  
+  @show output_data_frame
+  if save_to_file != ""
+    CSV.write(save_to_file, output_data_frame)
+  end
+  return output_data_frame
+end  
 
 # par_study
-function par_study(;
+function OLD_par_study(;
                     LSM_ratio_list = collect( 0 : 0.2 : 1.0),
                     hole_ratio = 0.2,
                     dimensions = (20,20),
+                    matrix_template = default_matrix_template,                    
                     repeted_trials = 10,
                     parameters = []
   )
@@ -45,10 +186,7 @@ function par_study(;
     res = []    
     for i in 1:repeted_trials
       push!(res,
-        image_to_EIS( rand(
-                          generate_random_specification(LSM_ratio, hole_ratio), 
-                          dimensions...
-                      ),
+        image_to_EIS( matrix_template(LSM_ratio, hole_ratio, dimensions),
                       parameters,
                       #
                       return_R_RC=true, 
@@ -105,6 +243,7 @@ end
 
 
 function evaluate_slurm_results(dir="src/", changing_prm_name="hole_ratio"; plot=false, plot_range = nothing )
+  
   
   function get_the_strs_from_file(path)
     output_line = ""
