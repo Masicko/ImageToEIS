@@ -4,11 +4,11 @@ const i_hole = 2
 
 
 Base.@kwdef mutable struct parameters        
-    R_YSZ::Float64 = 100
+    R_YSZ::Float64 = 0.045 # S/cm
     R_pol_YSZ::Float64 = 0
     C_pol_YSZ::Float64 = 0.001
     #
-    R_LSM::Float64 = 1
+    R_LSM::Float64 = 290 # S/cm
     R_pol_LSM::Float64 = 40
     C_pol_LSM::Float64 = 0.005
     #

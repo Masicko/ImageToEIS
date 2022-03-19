@@ -135,14 +135,15 @@ function par_study(
     local_parameters = extract_physical_parameters(local_par_study_prms)
       
     for i in 1:par_study_prms["trials_count"]
-      R, R_pol, C_pol = image_to_EIS(
+      R, R_pol, C_pol = convert.(Float64,
+        image_to_EIS(
                       local_par_study_prms["matrix_template"](local_par_study_prms),
                       local_parameters,
                       #
                       return_R_RC=true, 
                       TPE_warning=false,                      
                       pyplot=false,
-                      
+        )
       )
       
       append!(output_data_frame, 
