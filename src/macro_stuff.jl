@@ -165,7 +165,7 @@ function par_study(
     CSV.write(save_to_file, output_data_frame)
   end
   return output_data_frame
-end  
+end
 
 # par_study
 function OLD_par_study(;
@@ -206,8 +206,99 @@ function OLD_par_study(;
 end
 
 
-function run_par_study()
-  #todo
+function template_par_study_three_domain()
+  run_par_study(
+    par_study_prms_dict = Dict(
+                    "matrix_template" => ImageToEIS.three_column_domain_LSM_ratios,
+                #
+                    "trials_count" => 1,
+                    #
+                    #
+                    "LSM_ratios" => [                                     
+                                    INPUT1 .* INPUT2 for INPUT1 in collect(0.0 : 0.5 : 0.0), INPUT2 in [(1, 1, 1), (0, 1, 1), (0, 0, 1)]
+                                    ],
+                    #
+                    "hole_ratio" => collect(0.0 : 0.05 : 0.1),
+                    #
+                    "positions_of_contacts" => (2, 7),
+                    "height_of_contacts" => 1,
+                    #
+                    "column_width" => 1,
+                    "height" => 10
+    ),
+    scripted_prms_names = [
+                    "LSM_ratios", 
+                    "hole_ratio" => ["hole_ratio1", "hole_ratio2", "hole_ratio3"]
+    ],
+    save_to_file_prefix = "3_domain_",
+    direct = false,
+    shell_command = "echo"
+  )
+end
+
+
+function template_par_study_homogenous_matrix()
+  run_par_study(
+    par_study_prms_dict = Dict(
+                            "matrix_template" => ImageToEIS.homogenous_matrix,
+                            #
+                            "trials_count" => 2,
+                            #
+                            "LSM_ratio" => collect(0.0 : 0.5 : 1.0),                            
+                            "hole_ratio" => collect(0.0 : 0.5 : 0.5),
+                            #
+                            "dimensions" => (5,5),                                                        
+                        ), 
+    scripted_prms_names = ["LSM_ratio", "hole_ratio"],
+    save_to_file_prefix = "homog_",
+    direct = false
+  )
+end
+
+function run_par_study(;shell_command="echo",
+                        script_file="run_EX3_ysz_fitting_ImageToEIS.jl",
+                        mode="go!", direct=false,
+                        par_study_prms_dict::Dict,
+                        scripted_prms_names::Array,
+                        save_to_file_prefix = "default_"
+                      )
+  
+  dict_list = []
+  prm_name = "hole_ratio"
+  
+  scripted_prms_lists = [                          
+                          typeof(prm_name) <: Pair ?                           
+                            par_study_prms_dict[prm_name[1]] :
+                            par_study_prms_dict[prm_name]                          
+                          for prm_name in scripted_prms_names
+                        ]  
+                        
+  function run_par_study_for_one_dict(prms_tuple)                
+    DICT = deepcopy(par_study_prms_dict)
+    update_pairs = []
+    for i in 1:length(scripted_prms_names)      
+      if typeof(scripted_prms_names[i]) <: Pair        
+        push!(update_pairs, [identifier => prms_tuple[i] for identifier in scripted_prms_names[i][2]]...)
+        delete!(DICT, scripted_prms_names[i][1])
+      else
+        push!(update_pairs, scripted_prms_names[i] => prms_tuple[i])
+      end
+    end      
+    DICT = merge(DICT, Dict(update_pairs))
+    save_to_file = save_to_file_prefix*"$(prms_tuple)"
+    #
+    if direct
+      par_study(DICT, save_to_file=save_to_file)
+    else
+      if mode == "go!"
+        run(`$(shell_command) $(script_file) $(DICT) $(save_to_file)`)
+      end
+    end            
+  end
+  
+  for_each_prms_in_prms_lists(scripted_prms_lists, run_par_study_for_one_dict)
+  println("Done :) ")
+  return
 end
 
 
@@ -242,100 +333,82 @@ function plot_par_study_results(x, R, Rp, Cp, label="")
   legend()
 end
 
-
-function evaluate_slurm_results(dir="src/", changing_prm_name="hole_ratio"; plot=false, plot_range = nothing )
+function evaluate_DFs(dir, y_axis_labels)  
+  total_DF = DataFrame()
+  for file_name in readdir(dir)
+    actual_DF = DataFrame(CSV.File(dir*"/$(file_name)"))
+    total_DF = vcat(total_DF, actual_DF)
+  end
   
-  
-  function get_the_strs_from_file(path)
-    output_line = ""
-    changing_prm_direct_string = ""
-    open(path) do f
-      for line in eachline(f)         
-        if length(line) >= 3 && line[1:3] == "Ima"              
-          output_line = deepcopy(line)         
-        elseif (length(line) >= length(changing_prm_name) &&
-                line[1:length(changing_prm_name)] == changing_prm_name)
-          changing_prm_direct_string = deepcopy(line)
-        elseif (length(line) >= length("INPUT") &&
-                line[1:length("INPUT")] == "INPUT")
-          eval(Meta.parse(line))          
-        end
+  res_DF = DataFrame()
+  if total_DF[!, :matrix_template][1] == "three_column_domain_LSM_ratios"        
+    for subDF in groupby(total_DF, :LSM_ratios)
+      LSM_tuple = eval(Meta.parse(subDF[!, :LSM_ratios][1]))
+      LSM_ratio = LSM_tuple[3]
+      if LSM_tuple[2] == 0.0 && LSM_tuple[3] != 0.0
+          cell_type = 3
+      elseif LSM_tuple[1] == 0.0 && LSM_tuple[2] != 0.0
+          cell_type = 2
+      else
+          cell_type = 1
+      end
+      for primitive_DF in groupby(subDF, :hole_ratio1)                
+        append!(
+          res_DF, 
+          Dict(
+            :LSM_ratio => LSM_ratio,
+            :cell_type => cell_type,
+            :hole_ratio => primitive_DF[!, :hole_ratio1][1],
+            [y_axis => sum(primitive_DF[!, y_axis])/length(primitive_DF[!, y_axis]) for y_axis in y_axis_labels]...
+          )
+        )
+      end            
+    end    
+  elseif total_DF[!, :matrix_template][1] == "homogenous_matrix"    
+    for subDF in groupby(total_DF, :LSM_ratio)      
+      for primitive_DF in groupby(subDF, :hole_ratio)
+        append!(
+          res_DF, 
+          Dict(
+            :LSM_ratio => subDF[!, :LSM_ratio][1],                    
+            :hole_ratio => primitive_DF[!, :hole_ratio][1],
+            [y_axis => sum(primitive_DF[!, y_axis])/length(primitive_DF[!, y_axis]) for y_axis in y_axis_labels]...
+          )
+        )
       end
     end
-    return changing_prm_direct_string, output_line
+  else 
+    println("ERROR: unknown \"matrix_template\": $(total_DF[!, :matrix_template][1])")
+    throw(Exception)
   end
-  
-  output_dict = Dict()
-    
-  for file in readdir(dir)
-    if length(file) >= 6 && file[1:6] == "slurm-"
-      changing_prm_direct_string, my_str = get_the_strs_from_file(dir*file)
-      if my_str == ""
-        println("file $(file) skipped")
-      else        
-        last_is_equal = findall(x -> x == '=', my_str)[end]        
-        
-        if changing_prm_direct_string != ""          
-          prm_value = eval(
-              Meta.parse(
-                split(changing_prm_direct_string, '=')[end]
-              )
-          )                        
-        else
-          head = my_str[1:last_is_equal-1]
-          first_bracket = findall(x -> x == '(', head)[1]
-          #
-          NT_prms = eval(Meta.parse(head[first_bracket : end]))
-          physical_prms = NT_prms[:parameters]
-          for pair in physical_prms
-            if pair[1] == changing_prm_name
-              prm_value = pair[2]
-            end
-          end                                        
-        end
-        
-        ##############################
-        # has fields (x, R, Rp, Cp)
-        # -> x = LSM_ratio_list
-        # -> R = [R(x) for x in LSM_ratio_list]        
-        output_tuple = eval(Meta.parse(my_str[last_is_equal + 1 : end]))
-        prm_value_identifier = prm_value
-        
-        #@show output_dict        
-        if haskey(output_dict, prm_value_identifier)
-          recent_tuple = output_dict[prm_value_identifier]
-          if recent_tuple[1] != convert.(Float32, output_tuple[1])
-            println("ERROR: LSM_ratio_list mismatch: $(recent_tuple[1]) != $(output_tuple[1])")
-          end
-          for (i, ratio) in enumerate(output_tuple[1])
-            for prm_identifier in 2:4                            
-              append!(recent_tuple[prm_identifier][i], output_tuple[prm_identifier][i])
-            end
-          end
-        else                          
-          output_dict[prm_value_identifier] = map(x ->  map(
-                                                          y -> convert.(Float32, y)
-                                                          ,
-                                                          x
-                                                        )                                                        
-                                                  , 
-                                                  output_tuple
-                                              )
-        end
-      end
-    end
-  end
+  return res_DF
+end 
 
+function show_plots(x_axis, prms_choice, dir="snehurka/par_study/")  
+  processed_df = evaluate_DFs(dir, [:R, :R_pol, :C_pol])
+  #return processed_df
   
-  if plot 
-    for plotted_prm in sort!([deepcopy(keys(output_dict))...])
-      key = plotted_prm 
-      ImageToEIS.plot_par_study_results(output_dict[key]..., "$(changing_prm_name) = $(key)")
-    end
-  end
-  
-  return output_dict
+  primitive_DF = subset(processed_df, 
+          [Symbol(pair[1]) => ByRow(==(pair[2])) for pair in prms_choice]...  
+  )
+  sort!(primitive_DF, x_axis)
+  plot_par_study_results(
+    primitive_DF[!, x_axis], 
+    primitive_DF[!, :R], 
+    primitive_DF[!, :R_pol],
+    primitive_DF[!, :C_pol],
+    ""
+  )
+  return
 end
+
+
+
+
+
+
+
+
 
 
 
