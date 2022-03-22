@@ -251,7 +251,8 @@ function template_par_study_homogenous_matrix()
                         ), 
     scripted_prms_names = ["LSM_ratio", "hole_ratio"],
     save_to_file_prefix = "homog_",
-    direct = false
+    direct = false,
+    shell_command = "echo"
   )
 end
 
@@ -285,13 +286,14 @@ function run_par_study(;shell_command="echo",
       end
     end      
     DICT = merge(DICT, Dict(update_pairs))
-    save_to_file = save_to_file_prefix*"$(prms_tuple)"
+    DICT_str = string(DICT)
+    save_to_file = save_to_file_prefix*"$(prms_tuple).csv"
     #
     if direct
       par_study(DICT, save_to_file=save_to_file)
     else
       if mode == "go!"
-        run(`$(shell_command) $(script_file) $(DICT) $(save_to_file)`)
+        run(`$(shell_command) $(script_file) $(DICT_str) $(save_to_file)`)
       end
     end            
   end
