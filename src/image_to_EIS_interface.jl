@@ -37,8 +37,10 @@ function image_to_EIS(
             pyplot=true,
             return_R_RC=false,
             export_z_file="",
-            save_also_image=false,
             #export_z_file="!use_file_name",
+            save_also_image="",
+            #save_also_image="!input",
+            
             
             keep_constant_physical_height = true,
             store_R_RC=""
@@ -52,8 +54,12 @@ function image_to_EIS(
     f_list = [0.1, 10000]
   end
   
-  extract_R_RC = false
-  if return_R_RC || two_point_extrapolation || store_R_RC
+  
+  
+  
+  
+  extract_R_RC = false  
+  if return_R_RC || two_point_extrapolation || store_R_RC != ""
     extract_R_RC = true
   end
                     
@@ -121,12 +127,14 @@ function image_to_EIS(
     
     export_EIS_to_Z_file(export_z_file, f_list, Z_list)
     
-    if save_also_image && input_path != ""
+    if save_also_image == "!input" && input_path != ""
       cp(
         input_path, 
         change_extension_to(export_z_file, input_path[end-2 : end]),
         force=true
       )
+    elseif save_also_image != ""
+      matrix_to_file(save_also_image, material_matrix)
     end
   end
   

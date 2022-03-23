@@ -162,47 +162,10 @@ function par_study(
   
   @show output_data_frame
   if save_to_file != ""
+    
     CSV.write(save_to_file, output_data_frame)
   end
   return output_data_frame
-end
-
-# par_study
-function OLD_par_study(;
-                    LSM_ratio_list = collect( 0 : 0.2 : 1.0),
-                    hole_ratio = 0.2,
-                    dimensions = (20,20),
-                    matrix_template = default_matrix_template,                    
-                    repeted_trials = 10,
-                    parameters = []
-  )
-  
-  R_list = []
-  R_pol_list = []
-  C_pol_list = []
-  
-  for LSM_ratio in LSM_ratio_list
-    @show LSM_ratio
-    
-    res = []    
-    for i in 1:repeted_trials
-      push!(res,
-        image_to_EIS( matrix_template(LSM_ratio, hole_ratio, dimensions),
-                      parameters,
-                      #
-                      return_R_RC=true, 
-                      TPE_warning=false,                      
-                      pyplot=false,
-                      
-        )
-      )
-    end
-    
-    push!(R_list, [a[1] for a in res])
-    push!(R_pol_list, [a[2] for a in res])
-    push!(C_pol_list, [a[3] for a in res])     
-  end
-  return LSM_ratio_list, R_list, R_pol_list, C_pol_list
 end
 
 
@@ -238,7 +201,7 @@ end
 
 
 function template_par_study_homogenous_matrix()
-  run_par_study(
+  ImageToEIS.run_par_study(
     par_study_prms_dict = Dict(
                             "matrix_template" => ImageToEIS.homogenous_matrix,
                             #
@@ -263,9 +226,6 @@ function run_par_study(;shell_command="echo",
                         scripted_prms_names::Array,
                         save_to_file_prefix = "default_"
                       )
-  
-  dict_list = []
-  prm_name = "hole_ratio"
   
   scripted_prms_lists = [                          
                           typeof(prm_name) <: Pair ?                           
