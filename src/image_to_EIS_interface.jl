@@ -123,17 +123,15 @@ function image_to_EIS(
     end
   elseif export_z_file != ""
     
-    
-    
     export_EIS_to_Z_file(export_z_file, f_list, Z_list)
-    
+        
     if save_also_image == "!input" && input_path != ""
       cp(
         input_path, 
         change_extension_to(export_z_file, input_path[end-2 : end]),
         force=true
       )
-    elseif save_also_image != ""
+    elseif save_also_image != ""      
       matrix_to_file(save_also_image, material_matrix)
     end
   end
