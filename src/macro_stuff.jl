@@ -112,7 +112,7 @@ function par_study(
   
   
   par_study_prms = Dict{String, Any}(
-    "trials_count" => 2.0,
+    "repetition_idx" => 1.0,
   )
   
   if !haskey(input_prms_dict, "matrix_template")
@@ -133,26 +133,24 @@ function par_study(
   function execute_for_specific_values(specific_values)
     local_par_study_prms = Dict(collect(keys(par_study_prms)) .=> specific_values)     
     local_parameters = extract_physical_parameters(local_par_study_prms)
-      
-    for i in 1:par_study_prms["trials_count"]
-      R, R_pol, C_pol = convert.(Float64,
-        image_to_EIS(
-                      local_par_study_prms["matrix_template"](local_par_study_prms),
-                      local_parameters,
-                      #
-                      return_R_RC=true, 
-                      TPE_warning=false,                      
-                      pyplot=false,
-        )
+          
+    R, R_pol, C_pol = convert.(Float64,
+      image_to_EIS(
+                    local_par_study_prms["matrix_template"](local_par_study_prms),
+                    local_parameters,
+                    #
+                    return_R_RC=true, 
+                    TPE_warning=false,                      
+                    pyplot=false,
       )
-      
-      append!(output_data_frame, 
-        merge(
-          local_par_study_prms,
-          Dict("trial_number" => i, "R" => R, "R_pol" => R_pol, "C_pol" => C_pol)
-        )
+    )
+    
+    append!(output_data_frame, 
+      merge(
+        local_par_study_prms,
+        Dict("R" => R, "R_pol" => R_pol, "C_pol" => C_pol)
       )
-    end
+    )  
   end
   
   for_each_prms_in_prms_lists(
@@ -174,7 +172,7 @@ function template_par_study_three_domain()
     par_study_prms_dict = Dict(
                     "matrix_template" => ImageToEIS.three_column_domain_LSM_ratios,
                 #
-                    "trials_count" => 1,
+                    "repetition_idx" => collect(1:1),
                     #
                     #
                     "LSM_ratios" => [                                     
@@ -205,7 +203,7 @@ function template_par_study_homogenous_matrix()
     par_study_prms_dict = Dict(
                             "matrix_template" => ImageToEIS.homogenous_matrix,
                             #
-                            "trials_count" => 2,
+                            "repetition_idx" => collect(1:1),
                             #
                             "LSM_ratio" => collect(0.0 : 0.5 : 1.0),                            
                             "hole_ratio" => collect(0.0 : 0.5 : 0.5),
