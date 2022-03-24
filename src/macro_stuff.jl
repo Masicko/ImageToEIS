@@ -293,7 +293,7 @@ function plot_par_study_results(x, R, Rp, Cp, label="")
   legend()
 end
 
-function evaluate_DFs(dir, y_axis_labels)  
+function evaluate_DFs(dir, y_axis_labels; specific_symbol)  
   total_DF = DataFrame()
   for file_name in readdir(dir)
     actual_DF = DataFrame(CSV.File(dir*"/$(file_name)"))
@@ -302,28 +302,44 @@ function evaluate_DFs(dir, y_axis_labels)
   
   res_DF = DataFrame()
   if total_DF[!, :matrix_template][1] == "three_column_domain_LSM_ratios"        
-    for subDF in groupby(total_DF, :LSM_ratios)
-      LSM_tuple = eval(Meta.parse(subDF[!, :LSM_ratios][1]))
-      LSM_ratio = LSM_tuple[3]
-      if LSM_tuple[2] == 0.0 && LSM_tuple[3] != 0.0
-          cell_type = 3
-      elseif LSM_tuple[1] == 0.0 && LSM_tuple[2] != 0.0
-          cell_type = 2
-      else
-          cell_type = 1
-      end
-      for primitive_DF in groupby(subDF, :hole_ratio1)                
-        append!(
-          res_DF, 
-          Dict(
-            :LSM_ratio => LSM_ratio,
-            :cell_type => cell_type,
-            :hole_ratio => primitive_DF[!, :hole_ratio1][1],
-            [y_axis => sum(primitive_DF[!, y_axis])/length(primitive_DF[!, y_axis]) for y_axis in y_axis_labels]...
+    if specific_symbol =="do_nothing"
+      for subDF in groupby(total_DF, :LSM_ratios)
+        LSM_tuple = eval(Meta.parse(subDF[!, :LSM_ratios][1]))
+        for primitive_DF in groupby(subDF, :hole_ratio1)                
+          append!(
+            res_DF, 
+            Dict(
+              :LSM_ratios => LSM_tuple,              
+              :hole_ratio => primitive_DF[!, :hole_ratio1][1],
+              [y_axis => sum(primitive_DF[!, y_axis])/length(primitive_DF[!, y_axis]) for y_axis in y_axis_labels]...
+            )
           )
-        )
-      end            
-    end    
+        end            
+      end    
+    else
+      for subDF in groupby(total_DF, :LSM_ratios)
+        LSM_tuple = eval(Meta.parse(subDF[!, :LSM_ratios][1]))
+        LSM_ratio = LSM_tuple[3]
+        if LSM_tuple[2] == 0.0 && LSM_tuple[3] != 0.0
+            cell_type = 3
+        elseif LSM_tuple[1] == 0.0 && LSM_tuple[2] != 0.0
+            cell_type = 2
+        else
+            cell_type = 1
+        end
+        for primitive_DF in groupby(subDF, :hole_ratio1)                
+          append!(
+            res_DF, 
+            Dict(
+              :LSM_ratio => LSM_ratio,
+              :cell_type => cell_type,
+              :hole_ratio => primitive_DF[!, :hole_ratio1][1],
+              [y_axis => sum(primitive_DF[!, y_axis])/length(primitive_DF[!, y_axis]) for y_axis in y_axis_labels]...
+            )
+          )
+        end            
+      end    
+    end
   elseif total_DF[!, :matrix_template][1] == "homogenous_matrix"    
     for subDF in groupby(total_DF, :LSM_ratio)      
       for primitive_DF in groupby(subDF, :hole_ratio)
@@ -344,9 +360,11 @@ function evaluate_DFs(dir, y_axis_labels)
   return res_DF
 end 
 
-function show_plots(x_axis, prms_choice, dir="snehurka/par_study/")  
-  processed_df = evaluate_DFs(dir, [:R, :R_pol, :C_pol])
+function show_plots(x_axis, prms_choice, dir="snehurka/par_study/"; specific_symbol="")  
+  processed_df = evaluate_DFs(dir, [:R, :R_pol, :C_pol], specific_symbol=specific_symbol)
   #return processed_df
+  
+  @show processed_df
   
   primitive_DF = subset(processed_df, 
           [Symbol(pair[1]) => ByRow(==(pair[2])) for pair in prms_choice]...  
