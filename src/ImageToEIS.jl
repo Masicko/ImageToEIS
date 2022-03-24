@@ -10,11 +10,15 @@ using Printf
 using Colors
 using DataFrames
 using CSV
+using Interpolations
 
 using Base
 
 include("equivalent_circuit_support.jl")
 include("Z_view_export.jl")
+include("temperature_dependences.jl")
+export TI
+
 include("physical_properties.jl")
 export matrix_to_file
 
