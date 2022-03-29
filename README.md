@@ -147,7 +147,7 @@ Practically useful keyword parameters are
   - if `= ""` : means *do nothing* (which is default)
   - if `= "storage.txt"` : append a line formated as <dateTtime> tab <input_file_name> tab <R_ohm> tab <R_pol> tab <C_pol> . If the function was called with a matrix (not an path to file), `"<matrix_input>"` is written instead of <input_file_name>.
   - if `= "storage.csv"` : csv extension works too
-- `keep_constant_physical_height = true` : the resulting current is divided by number of rows of input matrix. Therefore, scaling of input matrix does not change the EIS measurement.
+- `return_specific_impedancde' = true` : returns specific impedance in *ohms x cm*. Also values *R_RC* will be returned in specific units.
 
 Advanced keyword parameters are 
 

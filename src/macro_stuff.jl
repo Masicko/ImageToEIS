@@ -25,6 +25,24 @@ end
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 function homogenous_matrix(par_study_prms::Dict)
   return rand(
             generate_random_specification(
@@ -64,6 +82,41 @@ function three_column_domain_LSM_ratios(p::Dict)
     )
   )
 end
+
+function three_column_domain_LSM_ratios(p::Dict)  
+  return generate_matrix(
+    three_column_domain_template(p["LSM_ratios"]..., 
+                              #
+                              hole_ratio1=p["hole_ratio1"], hole_ratio2=p["hole_ratio2"], hole_ratio3=p["hole_ratio3"],
+                              #                              
+                              positions_of_contacts=p["positions_of_contacts"], height_of_contacts=p["height_of_contacts"], 
+                              #
+                              column_width = p["column_width"],
+                              #
+                              height = p["height"]
+    )
+  )
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #
 #
@@ -160,11 +213,51 @@ function par_study(
   
   @show output_data_frame
   if save_to_file != ""
-    
     CSV.write(save_to_file, output_data_frame)
   end
   return output_data_frame
 end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 function template_par_study_three_domain()
@@ -217,20 +310,53 @@ function template_par_study_homogenous_matrix()
   )
 end
 
+function template_par_study_temperature()
+  for T in [600, 650, 700, 750, 800]
+    ImageToEIS.run_par_study(
+      par_study_prms_dict = Dict(
+                              "matrix_template" => ImageToEIS.homogenous_matrix,
+                              #
+                              "repetition_idx" => collect(1:1),
+                              #
+                              "LSM_ratio" => collect(0.0 : 0.5 : 1.0),                            
+                              "hole_ratio" => collect(0.0 : 0.5 : 0.5),
+                              #
+                              "dimensions" => (5,5),                                                        
+                              #
+                              #
+                              "T" => T,
+                              "R_YSZ" => TI("R_YSZ", T),
+                              "R_LSM" => TI("R_LSM", T)
+                          ), 
+      scripted_prms_names = ["LSM_ratio", "hole_ratio"],
+      save_to_file_prefix = "homog_",
+      direct = true,
+      shell_command = "echo"
+    )
+  end
+end
+
+function construct_explicit_par_study_dict(par_study_prms_dict, parameter_dependency)
+  
+end
+
 function run_par_study(;shell_command="echo",
                         script_file="run_EX3_ysz_fitting_ImageToEIS.jl",
                         mode="go!", direct=false,
                         par_study_prms_dict::Dict,
+                        paramter_dependency::Expr=:(),
                         scripted_prms_names::Array,
                         save_to_file_prefix = "default_"
                       )
+  
+  
   
   scripted_prms_lists = [                          
                           typeof(prm_name) <: Pair ?                           
                             par_study_prms_dict[prm_name[1]] :
                             par_study_prms_dict[prm_name]                          
                           for prm_name in scripted_prms_names
-                        ]  
+                        ]
                         
   function run_par_study_for_one_dict(prms_tuple)                
     DICT = deepcopy(par_study_prms_dict)
@@ -246,17 +372,27 @@ function run_par_study(;shell_command="echo",
     DICT = merge(DICT, Dict(update_pairs))
     DICT_str = string(DICT)
     save_to_file = save_to_file_prefix*"$(prms_tuple).csv"
-    #
-    if direct
-      par_study(DICT, save_to_file=save_to_file)
-    else
-      if mode == "go!"
+    #    
+    if mode == "go!" || mode == "try_one_prms"
+      if direct
+        par_study(DICT, save_to_file=save_to_file)
+      else      
         run(`$(shell_command) $(script_file) $(DICT_str) $(save_to_file)`)
       end
-    end            
+    elseif mode == "only_save_image"        
+        @show DICT
+        matrix_to_file("save_first_image.png", DICT["matrix_template"](DICT))
+    end
   end
   
-  for_each_prms_in_prms_lists(scripted_prms_lists, run_par_study_for_one_dict)
+  if mode == "only_save_image" || mode == "try_one_prms"
+    @show scripted_prms_lists
+    first_prms_array = [list[Int(floor(end/2)+1)] for list in scripted_prms_lists]
+    @show first_prms_array
+    run_par_study_for_one_dict(first_prms_array)
+  else
+    for_each_prms_in_prms_lists(scripted_prms_lists, run_par_study_for_one_dict)
+  end
   println("Done :) ")
   return
 end
@@ -264,34 +400,53 @@ end
 
 
 
-function plot_par_study_results(x, R, Rp, Cp, label="")
-  figure(5)
-  suptitle("YSZ-LSM-hole 50x50 random distribution test - 10 repetitions for each conditions")
-  subplot(221)
-    
-  plot(x, [sum(R[n])/length(R[n]) for n in 1:length(R)], label=label, "-x")
-  xlabel("LSM ratio")
-  ylabel("R_ohm")
-  legend()
-  
-  subplot(223)    
-  plot(x, [sum(Rp[n]/length(Rp[n])) for n in 1:length(R)], label=label, "-x")
-  xlabel("LSM ratio")
-  ylabel("R_pol")
-  legend()
-  
-  subplot(222)  
-  plot(x, [sum(Cp[n]/length(Cp[n])) for n in 1:length(R)], label=label, "-x")
-  xlabel("LSM ratio")
-  ylabel("C_pol")
-  legend()
-  
-  subplot(224)  
-  plot(x, [sum(R[n])/length(R[n]) for n in 1:length(R)] .+ [sum(Rp[n]/length(Rp[n])) for n in 1:length(R)], label=label, "-x")
-  xlabel("LSM ratio")
-  ylabel("R_tot")
-  legend()
-end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#### Evaluation
 
 function evaluate_DFs(dir, y_axis_labels; specific_symbol)  
   total_DF = DataFrame()
@@ -364,8 +519,12 @@ function show_plots(x_axis, prms_choice, dir="snehurka/par_study/"; specific_sym
   processed_df = evaluate_DFs(dir, [:R, :R_pol, :C_pol], specific_symbol=specific_symbol)
   #return processed_df
   
-  @show processed_df
+  #@show processed_df 
   
+  legend_entry = ""
+  for pair in prms_choice
+    legend_entry *= "$(string(pair[1]) => pair[2]) "
+  end
   primitive_DF = subset(processed_df, 
           [Symbol(pair[1]) => ByRow(==(pair[2])) for pair in prms_choice]...  
   )
@@ -373,13 +532,44 @@ function show_plots(x_axis, prms_choice, dir="snehurka/par_study/"; specific_sym
   plot_par_study_results(
     primitive_DF[!, x_axis], 
     primitive_DF[!, :R], 
-    primitive_DF[!, :R_pol],
+    primitive_DF[!, :R_pol],  
     primitive_DF[!, :C_pol],
-    ""
+    label=legend_entry,
+    x_axis_label=x_axis
   )
   return
 end
 
+
+
+function plot_par_study_results(x, R, Rp, Cp; label="", x_axis_label)
+  figure(5)
+  #suptitle("YSZ-LSM-hole 50x50 random distribution test - repetitions for each conditions")
+  
+  subplot(221)
+  plot(x, [sum(R[n])/length(R[n]) for n in 1:length(R)], label=label, "-x")
+  xlabel(x_axis_label)
+  ylabel("R_ohm")
+  legend()
+  
+  subplot(223)    
+  plot(x, [sum(Rp[n]/length(Rp[n])) for n in 1:length(R)], label=label, "-x")
+  xlabel(x_axis_label)
+  ylabel("R_pol")
+  legend()
+  
+  subplot(222)  
+  plot(x, [sum(Cp[n]/length(Cp[n])) for n in 1:length(R)], label=label, "-x")
+  xlabel(x_axis_label)
+  ylabel("C_pol")
+  legend()
+  
+  subplot(224)  
+  plot(x, [sum(R[n])/length(R[n]) for n in 1:length(R)] .+ [sum(Rp[n]/length(Rp[n])) for n in 1:length(R)], label=label, "-x")
+  xlabel(x_axis_label)
+  ylabel("R_tot")
+  legend()
+end
 
 
 

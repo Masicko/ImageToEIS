@@ -42,7 +42,7 @@ function image_to_EIS(
             #save_also_image="!input",
             
             
-            keep_constant_physical_height = true,
+            return_specific_impedance = true,
             store_R_RC=""
             )
   
@@ -74,7 +74,7 @@ function image_to_EIS(
     verbose = verbose
   )
   
-  if keep_constant_physical_height
+  if return_specific_impedance
     #normalize output
     Z_list .*= size(material_matrix)[1] / size(material_matrix)[2]
   end
