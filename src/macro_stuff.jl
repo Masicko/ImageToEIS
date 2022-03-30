@@ -211,8 +211,12 @@ function par_study(
     execute_for_specific_values
   )
   
-  @show output_data_frame
+  #@show output_data_frame
   if save_to_file != ""
+    slash_idxs = findall(x -> x in ['/'], save_to_file)
+    if length(slash_idxs) > 0
+      mkpath(save_to_file[1:slash_idxs[end]])
+    end      
     CSV.write(save_to_file, output_data_frame)
   end
   return output_data_frame
@@ -476,7 +480,7 @@ function test_if_all_changing_prms_were_assigned(df, keys)
   return true
 end
 
-function get_grouped_processed_df(collected_df, x_axis, other_parameters; specific_symbol="")
+function get_grouped_processed_df(collected_df, x_axis, other_parameters; specific_symbol="", throw_exception=true)
   processed_df = deepcopy(collected_df)    
   
   keys_to_group = []
@@ -493,17 +497,22 @@ function get_grouped_processed_df(collected_df, x_axis, other_parameters; specif
   #
   if !test_if_all_changing_prms_were_assigned(processed_df, [keys_to_group..., x_axis])
     println("\n <<< ! ! ! ERROR! not all changing parameters were specified! >>> \n")
-    return throw(Exception)
+    if throw_exception
+      return throw(Exception)
+    end
   end
   #
   df_to_plot = combine(gdf, ["R", "R_pol", "C_pol"] .=> arr -> sum(arr)/length(arr), renamecols = false)
   return groupby(df_to_plot, keys_to_group)
 end
 
-function show_plots(x_axis, other_parameters, dir="snehurka/par_study/"; specific_symbol="", apply_func= x -> x)
+function show_plots(x_axis, other_parameters, dir="snehurka/par_study/"; 
+        specific_symbol="", 
+        apply_func= x -> x, 
+        throw_exception=true)
   collected_df = collect_df_files_in_folder(dir)
   #@show collected_df
-  grouped_df = get_grouped_processed_df(collected_df, x_axis, other_parameters, specific_symbol=specific_symbol)
+  grouped_df = get_grouped_processed_df(collected_df, x_axis, other_parameters, specific_symbol=specific_symbol, throw_exception=throw_exception)
   
   for (key, sub_df) in pairs(grouped_df)
     legend_entry = "$(key)"[12:end-1]
