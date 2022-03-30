@@ -175,23 +175,23 @@ image_to_EIS(   [1 1 1; 0 1 2],
 
 Automated generating of random structure is essential for statistical testing of system behavior. There are a few helping features using two main parameters. 
 
-- `hole_ratio` in [0, 1] : the ratio of holes over the total points (material points + holes) in the picture. 
+- `porosity` in [0, 1] : the ratio of holes over the total points (material points + holes) in the picture. 
 - `LSM_ratio` in [0, 1] : probability that the material point will be LSM.
 
 ### Simple homogenous matrix
 The simplest example is a homogenous domain of `dimensions = (m, n)`, where *m* is a number of rows and *n* a number of columns. Matrix of this type can be constructed via
 
 ```julialang
-homogenous_matrix = generate_matrix(dimensions, hole_ratio, LSM_ratio)
+homogenous_matrix = generate_matrix(dimensions, porosity, LSM_ratio)
 ```
 
 ### Structure using multiple submatrices
-For more complicated domains composed of several different homogenous subdomains, there is a possibility to construct appropriate matrix. Suppose we want to construct *m* x *n* matrix consisting of 2 different submatrices. First, a list of submatrices must be created such that one submatrix is represented by its *location* (left upper corner and right lower corner) in the resulting matrix and *hole_ratio* and *LSM_ratio*. 
+For more complicated domains composed of several different homogenous subdomains, there is a possibility to construct appropriate matrix. Suppose we want to construct *m* x *n* matrix consisting of 2 different submatrices. First, a list of submatrices must be created such that one submatrix is represented by its *location* (left upper corner and right lower corner) in the resulting matrix and *porosity* and *LSM_ratio*. 
 
 ```julialang
     # the structure for each submatrix in the list is >>
     # 
-    # [left upper coord, right lower coord,  hole_ratio,   LSM_ratio]
+    # [left upper coord, right lower coord,  porosity,   LSM_ratio]
     
 submatrix_list = [        
     [(1,1),             (10, 5),            0.2,          0.5],   # this is the first submatrix
@@ -204,13 +204,13 @@ two_subdomain_matrix = generate_matrix(submatrix_list)
 There can be more subdomains in `submatrix_list`. Dimensions of the resulting `two_subdomain_matrix` is computed as en rectangular envelope of all *locations* in `submatrix_list`. The submatrices can overlap (in this case, the latter has priority in evaluation of matrix), but **every pixel must be covered** by the submatrices.
 
 #### Three column domain template
-There is a template using the upper structure of defying submatrices, which generates a domain of 3 columns with defined material specification (*hole_ratio* and *LSM_ratio*). In addition, there are contacts (of width 1 and optional height) on the left side providing an interesting distribution of electrical current through the system. The right side consists of a continuous one layer of LSM as a connection to conductive electrolyte. The obligate input parameters are 
+There is a template using the upper structure of defying submatrices, which generates a domain of 3 columns with defined material specification (*porosity* and *LSM_ratio*). In addition, there are contacts (of width 1 and optional height) on the left side providing an interesting distribution of electrical current through the system. The right side consists of a continuous one layer of LSM as a connection to conductive electrolyte. The obligate input parameters are 
 
 - `LSM_ratio1`, `LSM_ratio2`, `LSM_ratio3`
 
 Optional parameters (with default values) are 
 
-- `hole_ratio1=0.5, hole_ratio2=0.5, hole_ratio3=0.5`
+- `porosity1=0.5, porosity2=0.5, porosity3=0.5`
 - `positions_of_contacts=[15, 50]` : starting row for each LSM contact 
 - `height_of_contacts=5`
 - `column_width=5`
@@ -226,7 +226,7 @@ LSM_ratio3 = 0.5
 template_submatrix_list = three_column_domain_template(LSM_ratio1, LSM_ratio1, LSM_ratio1,
                                      #                              
                                      column_width = 10,
-                                     hole_ratio1 = 0.0, hole_ratio3 = 0.2,
+                                     porosity1 = 0.0, porosity3 = 0.2,
                                      positions_of_contacts=[20, 45], height_of_contacts=4
                                  )
                         

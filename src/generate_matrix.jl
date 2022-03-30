@@ -1,9 +1,9 @@
-function generate_random_specification(LSM_ratio, hole_ratio)
+function generate_random_specification(LSM_ratio, porosity)
   v = Array{Int16}(undef, 100)    
   
     
-  hole_length = Int32(round(hole_ratio*100))
-  LSM_length = Int32(round((1 - hole_ratio)*LSM_ratio*100))        
+  hole_length = Int32(round(porosity*100))
+  LSM_length = Int32(round((1 - porosity)*LSM_ratio*100))        
   
   v .= i_YSZ
   v[1 : hole_length] .= i_hole
@@ -12,27 +12,27 @@ function generate_random_specification(LSM_ratio, hole_ratio)
 end
 
 # generate random matrix of dimensions 
-function generate_matrix(dimensions::Union{Tuple, Array}, hole_ratio::Float64, LSM_ratio::Float64)
+function generate_matrix(dimensions::Union{Tuple, Array}, porosity::Float64, LSM_ratio::Float64)
   return rand(
-                          generate_random_specification(LSM_ratio, hole_ratio), 
+                          generate_random_specification(LSM_ratio, porosity), 
                           dimensions...
          )
 end
 
-function generate_submatrix_to_matrix(matrix, left_upper::Union{Tuple, Array}, right_lower::Union{Tuple, Array}, hole_ratio::Float64, LSM_ratio::Float64)
-  submatrix = generate_matrix(right_lower .- left_upper .+ (1,1), hole_ratio, LSM_ratio)
+function generate_submatrix_to_matrix(matrix, left_upper::Union{Tuple, Array}, right_lower::Union{Tuple, Array}, porosity::Float64, LSM_ratio::Float64)
+  submatrix = generate_matrix(right_lower .- left_upper .+ (1,1), porosity, LSM_ratio)
   matrix[left_upper[1] : right_lower[1], left_upper[2] : right_lower[2]] = deepcopy(submatrix)
   return 
 end
 
-function generate_submatrix_to_matrix(matrix, right_lower::Union{Tuple, Array}, hole_ratio::Float64, LSM_ratio::Float64)
-  generate_submatrix_to_matrix(matrix, (1,1), right_lower::Union{Tuple, Array}, hole_ratio::Float64, LSM_ratio::Float64)
+function generate_submatrix_to_matrix(matrix, right_lower::Union{Tuple, Array}, porosity::Float64, LSM_ratio::Float64)
+  generate_submatrix_to_matrix(matrix, (1,1), right_lower::Union{Tuple, Array}, porosity::Float64, LSM_ratio::Float64)
 end
 
 function get_default_submatrix_list()
   # 1 item in the resulting list is
   # 
-  # left upper, right lower corner, hole_ratio, LSM_ratio
+  # left upper, right lower corner, porosity, LSM_ratio
 
   first_block_column = 1
   second_block_column = 21
@@ -83,7 +83,7 @@ end
 
 function three_column_domain_template(LSM_ratio1, LSM_ratio2, LSM_ratio3; 
                               #
-                              hole_ratio1=0.5, hole_ratio2=0.5, hole_ratio3=0.5,
+                              porosity1=0.5, porosity2=0.5, porosity3=0.5,
                               #                              
                               positions_of_contacts=[15, 50], height_of_contacts=5, 
                               #
@@ -93,7 +93,7 @@ function three_column_domain_template(LSM_ratio1, LSM_ratio2, LSM_ratio3;
                               )
   # 1 item in the resulting list is
   # 
-  # left upper, right lower corner, hole_ratio, LSM_ratio
+  # left upper, right lower corner, porosity, LSM_ratio
   first_block_column = 1
   second_block_column = column_width + 1
   third_block_column = 2*column_width + 1
@@ -102,9 +102,9 @@ function three_column_domain_template(LSM_ratio1, LSM_ratio2, LSM_ratio3;
   
   output = [
     [(1,1), (height, first_block_column), 1.0, 0.5],
-    [(1,first_block_column + 1), (height, second_block_column), hole_ratio1, LSM_ratio1],
-    [(1,second_block_column + 1), (height, third_block_column), hole_ratio2, LSM_ratio2],
-    [(1,third_block_column + 1), (height, fourth_block_column), hole_ratio3, LSM_ratio3],    
+    [(1,first_block_column + 1), (height, second_block_column), porosity1, LSM_ratio1],
+    [(1,second_block_column + 1), (height, third_block_column), porosity2, LSM_ratio2],
+    [(1,third_block_column + 1), (height, fourth_block_column), porosity3, LSM_ratio3],    
     [(1, fourth_block_column + 1), (height, width), 0.0, 1.0]
   ]
   

@@ -47,7 +47,7 @@ function homogenous_matrix(par_study_prms::Dict)
   return rand(
             generate_random_specification(
               par_study_prms["LSM_ratio"], 
-              par_study_prms["hole_ratio"]
+              par_study_prms["porosity"]
             ), 
             par_study_prms["dimensions"]...
   )
@@ -57,7 +57,7 @@ function three_column_domain_matrix(p::Dict)
   return generate_matrix(
     three_column_domain_template(p["LSM_ratio1"], p["LSM_ratio2"], p["LSM_ratio3"], 
                               #
-                              hole_ratio1=p["hole_ratio1"], hole_ratio2=p["hole_ratio2"], hole_ratio3=p["hole_ratio3"],
+                              porosity1=p["porosity1"], porosity2=p["porosity2"], porosity3=p["porosity3"],
                               #                              
                               positions_of_contacts=p["positions_of_contacts"], height_of_contacts=p["height_of_contacts"], 
                               #
@@ -72,7 +72,7 @@ function three_column_domain_LSM_ratios(p::Dict)
   return generate_matrix(
     three_column_domain_template(p["LSM_ratios"]..., 
                               #
-                              hole_ratio1=p["hole_ratio1"], hole_ratio2=p["hole_ratio2"], hole_ratio3=p["hole_ratio3"],
+                              porosity1=p["porosity1"], porosity2=p["porosity2"], porosity3=p["porosity3"],
                               #                              
                               positions_of_contacts=p["positions_of_contacts"], height_of_contacts=p["height_of_contacts"], 
                               #
@@ -83,20 +83,20 @@ function three_column_domain_LSM_ratios(p::Dict)
   )
 end
 
-function three_column_domain_LSM_ratios(p::Dict)  
-  return generate_matrix(
-    three_column_domain_template(p["LSM_ratios"]..., 
-                              #
-                              hole_ratio1=p["hole_ratio1"], hole_ratio2=p["hole_ratio2"], hole_ratio3=p["hole_ratio3"],
-                              #                              
-                              positions_of_contacts=p["positions_of_contacts"], height_of_contacts=p["height_of_contacts"], 
-                              #
-                              column_width = p["column_width"],
-                              #
-                              height = p["height"]
-    )
-  )
-end
+# function three_column_domain_LSM_ratios(p::Dict)  
+#   return generate_matrix(
+#     three_column_domain_template(p["LSM_ratios"]..., 
+#                               #
+#                               porosity1=p["porosity1"], porosity2=p["porosity2"], porosity3=p["porosity3"],
+#                               #                              
+#                               positions_of_contacts=p["positions_of_contacts"], height_of_contacts=p["height_of_contacts"], 
+#                               #
+#                               column_width = p["column_width"],
+#                               #
+#                               height = p["height"]
+#     )
+#   )
+# end
 
 
 
@@ -171,7 +171,7 @@ function par_study(
   if !haskey(input_prms_dict, "matrix_template")
     merge!(par_study_prms,
       Dict(
-        "hole_ratio" => 0.2,
+        "porosity" => 0.2,
         "LSM_ratio" => 0.2,    
         "dimensions" => (5, 5),
         "matrix_template" => homogenous_matrix
@@ -272,7 +272,7 @@ function template_par_study_three_domain()
                                     INPUT1 .* INPUT2 for INPUT1 in collect(0.0 : 0.5 : 0.0), INPUT2 in [(1, 1, 1), (0, 1, 1), (0, 0, 1)]
                                     ],
                     #
-                    "hole_ratio" => collect(0.0 : 0.05 : 0.1),
+                    "porosity" => collect(0.0 : 0.05 : 0.1),
                     #
                     "positions_of_contacts" => (2, 7),
                     "height_of_contacts" => 1,
@@ -282,7 +282,7 @@ function template_par_study_three_domain()
     ),
     scripted_prms_names = [
                     "LSM_ratios", 
-                    "hole_ratio" => ["hole_ratio1", "hole_ratio2", "hole_ratio3"]
+                    "porosity" => ["porosity1", "porosity2", "porosity3"]
     ],
     save_to_file_prefix = "3_domain_",
     direct = false,
@@ -299,11 +299,11 @@ function template_par_study_homogenous_matrix()
                             "repetition_idx" => collect(1:1),
                             #
                             "LSM_ratio" => collect(0.0 : 0.5 : 1.0),                            
-                            "hole_ratio" => collect(0.0 : 0.5 : 0.5),
+                            "porosity" => collect(0.0 : 0.5 : 0.5),
                             #
                             "dimensions" => (5,5),                                                        
                         ), 
-    scripted_prms_names = ["LSM_ratio", "hole_ratio"],
+    scripted_prms_names = ["LSM_ratio", "porosity"],
     save_to_file_prefix = "homog_",
     direct = false,
     shell_command = "echo"
@@ -319,7 +319,7 @@ function template_par_study_temperature()
                                    "repetition_idx" => collect(1:1),
                                    #
                                    "LSM_ratio" => collect(0.44 : 0.5 : 0.44),                            
-                                   "hole_ratio" => collect(0.5 : 0.5 : 0.5),
+                                   "porosity" => collect(0.5 : 0.5 : 0.5),
                                    #
                                    "dimensions" => (4,4),
                                    #
@@ -328,7 +328,7 @@ function template_par_study_temperature()
                                    "R_YSZ" => TI("R_YSZ", T),
                                    "R_LSM" => TI("R_LSM", T)
                                ), 
-           scripted_prms_names = ["repetition_idx", "LSM_ratio", "hole_ratio"],
+           scripted_prms_names = ["repetition_idx", "LSM_ratio", "porosity"],
            save_to_file_prefix = "por_study_$(T)_",
            direct = false,
            shell_command = "echo"
@@ -451,7 +451,7 @@ end
 function test_get_processed_df()
   x_axis = "T"
   other_parameters = [
-    "hole_ratio" => [0.1, 0.2, 0.3],
+    "porosity" => [0.1, 0.2, 0.3],
     "LSM_ratio"
   ]
   return show_plots(x_axis, other_parameters, "snehurka/par_studies/por_study_50x50/")  
