@@ -312,28 +312,28 @@ end
 
 function template_par_study_temperature()
   for T in [600, 650, 700, 750, 800]
-    ImageToEIS.run_par_study(
-      par_study_prms_dict = Dict(
-                              "matrix_template" => ImageToEIS.homogenous_matrix,
-                              #
-                              "repetition_idx" => collect(1:1),
-                              #
-                              "LSM_ratio" => collect(0.0 : 0.5 : 1.0),                            
-                              "hole_ratio" => collect(0.0 : 0.5 : 0.5),
-                              #
-                              "dimensions" => (5,5),                                                        
-                              #
-                              #
-                              "T" => T,
-                              "R_YSZ" => TI("R_YSZ", T),
-                              "R_LSM" => TI("R_LSM", T)
-                          ), 
-      scripted_prms_names = ["LSM_ratio", "hole_ratio"],
-      save_to_file_prefix = "homog_",
-      direct = true,
-      shell_command = "echo"
-    )
-  end
+         ImageToEIS.run_par_study(
+           par_study_prms_dict = Dict(
+                                   "matrix_template" => ImageToEIS.homogenous_matrix,
+                                   #
+                                   "repetition_idx" => collect(1:1),
+                                   #
+                                   "LSM_ratio" => collect(0.44 : 0.5 : 0.44),                            
+                                   "hole_ratio" => collect(0.5 : 0.5 : 0.5),
+                                   #
+                                   "dimensions" => (4,4),
+                                   #
+                                   #
+                                   "T" => T,
+                                   "R_YSZ" => TI("R_YSZ", T),
+                                   "R_LSM" => TI("R_LSM", T)
+                               ), 
+           scripted_prms_names = ["repetition_idx", "LSM_ratio", "hole_ratio"],
+           save_to_file_prefix = "por_study_$(T)_",
+           direct = false,
+           shell_command = "echo"
+         )
+       end
 end
 
 function construct_explicit_par_study_dict(par_study_prms_dict, parameter_dependency)
@@ -448,96 +448,77 @@ end
 
 #### Evaluation
 
-function evaluate_DFs(dir, y_axis_labels; specific_symbol)  
-  total_DF = DataFrame()
+function test_get_processed_df()
+  x_axis = "T"
+  other_parameters = [
+    "hole_ratio" => [0.1, 0.2, 0.3],
+    "LSM_ratio"
+  ]
+  return show_plots(x_axis, other_parameters, "snehurka/par_studies/por_study_50x50/")  
+end
+
+
+function collect_df_files_in_folder(dir)
+  collected_df = DataFrame()
   for file_name in readdir(dir)
     actual_DF = DataFrame(CSV.File(dir*"/$(file_name)"))
-    total_DF = vcat(total_DF, actual_DF)
+    collected_df = vcat(collected_df, actual_DF)
   end
-  
-  res_DF = DataFrame()
-  if total_DF[!, :matrix_template][1] == "three_column_domain_LSM_ratios"        
-    if specific_symbol =="do_nothing"
-      for subDF in groupby(total_DF, :LSM_ratios)
-        LSM_tuple = eval(Meta.parse(subDF[!, :LSM_ratios][1]))
-        for primitive_DF in groupby(subDF, :hole_ratio1)                
-          append!(
-            res_DF, 
-            Dict(
-              :LSM_ratios => LSM_tuple,              
-              :hole_ratio => primitive_DF[!, :hole_ratio1][1],
-              [y_axis => sum(primitive_DF[!, y_axis])/length(primitive_DF[!, y_axis]) for y_axis in y_axis_labels]...
-            )
-          )
-        end            
-      end    
-    else
-      for subDF in groupby(total_DF, :LSM_ratios)
-        LSM_tuple = eval(Meta.parse(subDF[!, :LSM_ratios][1]))
-        LSM_ratio = LSM_tuple[3]
-        if LSM_tuple[2] == 0.0 && LSM_tuple[3] != 0.0
-            cell_type = 3
-        elseif LSM_tuple[1] == 0.0 && LSM_tuple[2] != 0.0
-            cell_type = 2
-        else
-            cell_type = 1
-        end
-        for primitive_DF in groupby(subDF, :hole_ratio1)                
-          append!(
-            res_DF, 
-            Dict(
-              :LSM_ratio => LSM_ratio,
-              :cell_type => cell_type,
-              :hole_ratio => primitive_DF[!, :hole_ratio1][1],
-              [y_axis => sum(primitive_DF[!, y_axis])/length(primitive_DF[!, y_axis]) for y_axis in y_axis_labels]...
-            )
-          )
-        end            
-      end    
-    end
-  elseif total_DF[!, :matrix_template][1] == "homogenous_matrix"    
-    for subDF in groupby(total_DF, :LSM_ratio)      
-      for primitive_DF in groupby(subDF, :hole_ratio)
-        append!(
-          res_DF, 
-          Dict(
-            :LSM_ratio => subDF[!, :LSM_ratio][1],                    
-            :hole_ratio => primitive_DF[!, :hole_ratio][1],
-            [y_axis => sum(primitive_DF[!, y_axis])/length(primitive_DF[!, y_axis]) for y_axis in y_axis_labels]...
-          )
-        )
-      end
-    end
-  else 
-    println("ERROR: unknown \"matrix_template\": $(total_DF[!, :matrix_template][1])")
-    throw(Exception)
-  end
-  return res_DF
-end 
+  return collected_df
+end
 
-function show_plots(x_axis, prms_choice, dir="snehurka/par_study/"; specific_symbol="")  
-  processed_df = evaluate_DFs(dir, [:R, :R_pol, :C_pol], specific_symbol=specific_symbol)
-  #return processed_df
-  
-  #@show processed_df 
-  
-  legend_entry = ""
-  for pair in prms_choice
-    legend_entry *= "$(string(pair[1]) => pair[2]) "
+function test_if_all_changing_prms_were_assigned(df, keys)
+  for group in groupby(df, [keys..., "repetition_idx"])
+    if size(group)[1] != 1
+      return false
+    end
   end
-  primitive_DF = subset(processed_df, 
-          [Symbol(pair[1]) => ByRow(==(pair[2])) for pair in prms_choice]...  
-  )
-  sort!(primitive_DF, x_axis)
-  plot_par_study_results(
-    primitive_DF[!, x_axis], 
-    primitive_DF[!, :R], 
-    primitive_DF[!, :R_pol],  
-    primitive_DF[!, :C_pol],
-    label=legend_entry,
-    x_axis_label=x_axis
-  )
-  return
+  return true
+end
+
+function get_grouped_processed_df(collected_df, x_axis, other_parameters; specific_symbol="")
+  processed_df = deepcopy(collected_df)    
+  
+  keys_to_group = []
+  for other_parameter in other_parameters  
+    if typeof(other_parameter) <: Pair
+      filter!(row -> row[other_parameter[1]] in other_parameter[2], processed_df)
+      push!(keys_to_group, other_parameter[1])
+    else
+      push!(keys_to_group, other_parameter)
+    end
+  end
+  
+  gdf = groupby(processed_df, [keys_to_group..., x_axis]) 
+  #
+  if !test_if_all_changing_prms_were_assigned(processed_df, [keys_to_group..., x_axis])
+    println("\n <<< ! ! ! ERROR! not all changing parameters were specified! >>> \n")
+    return throw(Exception)
+  end
+  #
+  df_to_plot = combine(gdf, ["R", "R_pol", "C_pol"] .=> arr -> sum(arr)/length(arr), renamecols = false)
+  return groupby(df_to_plot, keys_to_group)
+end
+
+function show_plots(x_axis, other_parameters, dir="snehurka/par_study/"; specific_symbol="", apply_func= x -> x)
+  collected_df = collect_df_files_in_folder(dir)
+  #@show collected_df
+  grouped_df = get_grouped_processed_df(collected_df, x_axis, other_parameters, specific_symbol=specific_symbol)
+  
+  for (key, sub_df) in pairs(grouped_df)
+    legend_entry = "$(key)"[12:end-1]
+    sort!(sub_df, x_axis)
+    @show sub_df
+    plot_par_study_results(
+      sub_df[!, x_axis], 
+      apply_func.(sub_df[!, :R]), 
+      apply_func.(sub_df[!, :R_pol]),  
+      apply_func.(sub_df[!, :C_pol]),
+      label=legend_entry,
+      x_axis_label=x_axis
+    )    
+  end
+  return grouped_df
 end
 
 
@@ -547,6 +528,7 @@ function plot_par_study_results(x, R, Rp, Cp; label="", x_axis_label)
   #suptitle("YSZ-LSM-hole 50x50 random distribution test - repetitions for each conditions")
   
   subplot(221)
+  @show R
   plot(x, [sum(R[n])/length(R[n]) for n in 1:length(R)], label=label, "-x")
   xlabel(x_axis_label)
   ylabel("R_ohm")
