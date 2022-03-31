@@ -11,6 +11,7 @@ using Colors
 using DataFrames
 using CSV
 using Interpolations
+using Optim
 
 using Base
 
@@ -35,6 +36,8 @@ export three_column_domain_matrix
 include("macro_stuff.jl")
 export par_study
 
+#include("fitting.jl")
+#export run_fitting
 
 
 

@@ -314,31 +314,82 @@ function template_par_study_homogenous_matrix()
   )
 end
 
-function template_par_study_temperature()
+
+function template_par_study_temperatue()
   for T in [600, 650, 700, 750, 800]
-         ImageToEIS.run_par_study(
-           par_study_prms_dict = Dict(
-                                   "matrix_template" => ImageToEIS.homogenous_matrix,
-                                   #
-                                   "repetition_idx" => collect(1:1),
-                                   #
-                                   "LSM_ratio" => collect(0.44 : 0.5 : 0.44),                            
-                                   "porosity" => collect(0.5 : 0.5 : 0.5),
-                                   #
-                                   "dimensions" => (4,4),
-                                   #
-                                   #
-                                   "T" => T,
-                                   "R_YSZ" => TI("R_YSZ", T),
-                                   "R_LSM" => TI("R_LSM", T)
-                               ), 
-           scripted_prms_names = ["repetition_idx", "LSM_ratio", "porosity"],
-           save_to_file_prefix = "por_study_$(T)_",
-           direct = false,
-           shell_command = "echo"
-         )
-       end
+    for add_rep in collect(1:14)
+      ImageToEIS.run_par_study(
+        par_study_prms_dict = Dict(
+                                "matrix_template" => ImageToEIS.homogenous_matrix,
+                                #
+                                "repetition_idx" => collect(1:3),
+                                #
+                                "LSM_ratio" => collect(1.0 : 0.5 : 1.0),                            
+                                "porosity" => collect(0.12 : 0.001 : 0.12),
+                                #
+                                "dimensions" => (4,4),
+                                #
+                                #
+                                "T" => T,
+                                "p.R_YSZ" => TI("R_YSZ", T),
+                                "p.R_LSM" => TI("R_LSM", T)
+                            ), 
+        scripted_prms_names = [],#["repetition_idx", "LSM_ratio"],
+        save_to_file_prefix = "por_study_20x20_case_LSM/T$(T)_addREP$(add_rep)_",
+        direct = false,
+        shell_command = "echo"
+      )
+    end
+  end
 end
+
+
+
+function template_specific_three_domain()
+  # Mix ... versus ciste LSM
+  mat = Dict([:M => (0.5, 0.5), :L => (0.12, 1.0)])
+  
+  for configuration in [(:M, :M, :M), (:L, :M, :M), (:L, :L, :M), (:L, :L, :L)]
+    ImageToEIS.run_par_study(
+      par_study_prms_dict = Dict(
+                      "matrix_template" => ImageToEIS.three_column_domain_LSM_ratios,
+                      # 
+                      "repetition_idx" => collect(1:1),
+                      #
+                      #
+                      "configuration" => configuration,
+                      #
+                      "porosity1" => mat[configuration[1]][1],
+                      "porosity2" => mat[configuration[2]][1],
+                      "porosity3" => mat[configuration[3]][1],
+                      #
+                      "LSM_ratios" => ( 
+                                        mat[configuration[1]][2],
+                                        mat[configuration[2]][2],
+                                        mat[configuration[3]][2]                      
+                                      ),                                            
+                      #
+                      "positions_of_contacts" => (2, 7),
+                      "height_of_contacts" => 1,
+                      #
+                      "column_width" => 1,
+                      "height" => 10,
+                      #
+                      #
+                      "T" => T,
+                      "p.R_YSZ" => TI("R_YSZ", T),
+                      "p.R_LSM" => TI("R_LSM", T)
+      ),
+      scripted_prms_names = [
+                      "LSM_ratios",                      
+      ],
+      save_to_file_prefix = "3_domain_",
+      direct = false,
+      shell_command = "echo"
+    )
+  end
+end
+
 
 function construct_explicit_par_study_dict(par_study_prms_dict, parameter_dependency)
   
@@ -455,7 +506,7 @@ end
 function test_get_processed_df()
   x_axis = "T"
   other_parameters = [
-    "porosity" => [0.1, 0.2, 0.3],
+    "hole_ratio" => [0.1, 0.2, 0.3],
     "LSM_ratio"
   ]
   return show_plots(x_axis, other_parameters, "snehurka/par_studies/por_study_50x50/")  
