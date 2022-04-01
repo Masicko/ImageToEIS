@@ -15,33 +15,32 @@ Base.@kwdef mutable struct parameters
     R_hole::Float64 = 1000000
 end
 
-function RC_string(R, C)
-  return "(p.$(R)/(1 + p.$(C)*p.$(R)*w*im))"
+function RC_el(R, C, w)
+  return (R/(1 + C*R*w*im))
 end
 
 function get_Z_entry_from_material_matrix_codes(n1, n2, p::parameters)
-    
     if      n1 == i_LSM
             if      n2 == i_LSM
-              return "p.R_LSM/2"
+              return w -> p.R_LSM/2
             elseif  n2 == i_YSZ
-              return "p.R_LSM/2 + "*RC_string("R_pol_LSM", "C_pol_LSM")
+              return w -> p.R_LSM/2 + RC_el(p.R_pol_LSM, p.C_pol_LSM, w)
             elseif  n2 == i_hole
-              return "p.R_LSM/2"
+              return w ->  p.R_LSM/2
             end
     elseif  n1 == i_YSZ
-            if      n2 == i_LSM
-              return "p.R_YSZ/2 + "*RC_string("R_pol_YSZ", "C_pol_YSZ")
+            if      n2 == i_LSM              
+              return w -> p.R_YSZ/2 + RC_el(p.R_pol_YSZ, p.C_pol_YSZ, w)              
             elseif  n2 == i_YSZ
-              return "p.R_YSZ/2"
+              return w -> p.R_YSZ/2
             elseif  n2 == i_hole
-              return "p.R_YSZ/2"
+              return w -> p.R_YSZ/2
             end
-    elseif  n1 == i_hole
-            return "p.R_hole/2"
+    elseif  n1 == i_hole            
+            return w -> p.R_hole/2
     else
         println("ERROR: get_Z_entry...")
-    end    
+    end        
 end
 
 

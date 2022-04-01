@@ -192,13 +192,15 @@ function material_matrix_to_lin_sys(
             idx1 = idx2
             idx2 = aux
         end
-        try
-            Z_dict[get_Z_name(idx1, idx2)] *= 
-                " + "*get_Z_entry_from_material_matrix_codes(n1, n2, p)
-        catch
-            Z_dict[get_Z_name(idx1, idx2)] = 
+        current_key = get_Z_name(idx1, idx2)
+        if haskey(Z_dict, current_key)            
+            f = deepcopy(Z_dict[current_key])            
+            Z_dict[current_key] = w -> f(w) +
+                get_Z_entry_from_material_matrix_codes(n1, n2, p)(w)
+        else            
+            Z_dict[current_key] = 
                 get_Z_entry_from_material_matrix_codes(n1, n2, p)
-        end
+        end        
     end
     
     Z_dict = Dict()
@@ -213,7 +215,6 @@ function material_matrix_to_lin_sys(
     for i in 2:m+1
         add_Z_to_dict(i,1, 0, +1)
         add_Z_to_dict(i,n+2, 0, -1)
-    end
-    
+    end    
     return dict_to_lin_sys(Z_dict, aux_A)    
 end
