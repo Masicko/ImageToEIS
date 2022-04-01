@@ -54,16 +54,12 @@ function image_to_EIS(
     f_list = [0.1, 10000]
   end
   
-  
-  
-  
-  
   extract_R_RC = false  
   if return_R_RC || two_point_extrapolation || store_R_RC != ""
     extract_R_RC = true
   end
                     
-  f_list, Z_list =  matrix_to_impedance(
+  f_list, Z_list =  material_matrix_to_impedance(
     material_matrix,         
     prms_pairs,
     #      

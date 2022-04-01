@@ -20,10 +20,6 @@ function get_RC_prms_from_Z(omega, Z)
     )
 end
 
-function get_Z_from_R_RC(f_range, R_ohm, R, C)
-  [R_ohm + R/(1 + im*2*pi*f*R*C) for f in f_range]
-end
-
 function get_R_RC_prms_from_2Z(omegas, Zs)
   a1, b1 = real(Zs[1]), imag(Zs[1])
   a2, b2 = real(Zs[2]), imag(Zs[2])
@@ -50,4 +46,8 @@ function get_R_RC_prms_from_2Z(omegas, Zs)
   end
   
   return R_ohm, R, C
+end
+
+function get_Z_from_R_RC(f_range, R_ohm, R, C)
+  [R_ohm + R/(1 + im*2*pi*f*R*C) for f in f_range]
 end

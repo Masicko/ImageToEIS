@@ -41,10 +41,10 @@ end
 
 
 
-function matrix_to_impedance(
+function material_matrix_to_impedance(
             material_matrix::Array = [1 1 0 1; 0 1 0 1; 0 1 0 1; 0 1 0 1],            
             prms_pairs = [];
-             #      
+            #      
             f_list,            
             #
             complex_type=ComplexF64,
@@ -54,28 +54,27 @@ function matrix_to_impedance(
            
   params = get_prms_from_pairs(prms_pairs)         
   
-  header, A, b = material_matrix_to_equations(material_matrix, params)        
+  header, A, b = material_matrix_to_lin_sys(material_matrix, params)        
     
-  begin
-    subs_parameters_to_matrix!(A, params)
+  subs_parameters_to_matrix!(A, params)
+  
+  Z_list = []
+  A_eval = Matrix{complex_type}(undef, size(A)...)
+  b = convert.(complex_type, b)
+  for f in f_list
+    verbose && @show f
+    # critical line !!!
+    evaluate_matrix_for_w!(A_eval, A, 2*pi*f) 
     
-    Z_list = []
-    A_eval = Matrix{complex_type}(undef, size(A)...)
-    b = convert.(complex_type, b)
-    for f in f_list
-      verbose && @show f
-      # critical line !!!
-      evaluate_matrix_for_w!(A_eval, A, 2*pi*f) 
-      
-      #return A_eval, b
-      if iterative_solver       
-        x = bicgstabl(A_eval, b)
-      else                
-        x = A_eval \ b
-      end      
-      push!(Z_list, 1/x[1])
-    end
+    #return A_eval, b
+    if iterative_solver       
+      x = bicgstabl(A_eval, b)
+    else                
+      x = A_eval \ b
+    end      
+    push!(Z_list, 1/x[1])
   end
+  
   
   return f_list, Z_list      
 end

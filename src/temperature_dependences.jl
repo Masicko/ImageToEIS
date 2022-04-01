@@ -1,5 +1,6 @@
-#using Interpolations
 
+# temperature data are in degrees of Celsia
+# resistanace data are in Ohm/cm
 
 function TI(label)
   if label == "R_LSM"
