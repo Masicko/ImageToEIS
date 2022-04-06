@@ -8,23 +8,50 @@ function plot_results(n_list, timings)
 end
 
 
-function elapsed_test()
+function elapsed_test(;n_max=70)
   timings = []
   
-  n_list = collect(5 : 5 : 50)
+  n_list = collect(5 : 5 : n_max)
   for n in n_list
       println(" --- n = $(n) ---")
       push!(timings, 
-          @elapsed image_to_EIS_2D(zeros(n,n), f_range=[0.01, 100000], pyplot=false)
+          @elapsed image_to_EIS(zeros(n,n), f_list=[0.01, 100000], pyplot=false)
       )
   end
   plot_results(n_list, timings)
   return n_list, timings
 end
 
-
-
-
+function plot_fit(optim_list, model = (x,t) -> x[1]*exp(x[2] * t), unknown_count = 2; 
+                  extrapolation_list = nothing,
+                  plot_data=true
+                  )
+         
+  model_zde = x -> [model(x,t) for t in optim_list[1]]
+    
+  function to_opt(x)
+          sum = 0          
+          for i in 1:length(optim_list[1])
+              sum += (optim_list[2][i] - model_zde(x)[i])^2
+          end
+          return sum
+  end
+  xm = optimize(to_opt, zeros(unknown_count) .+ 1.0).minimizer
+  
+  if typeof(extrapolation_list) != Nothing
+    plot_x_list = extrapolation_list    
+  else
+    plot_x_list = optim_list[1]    
+  end
+  plot_model = x -> [model(x,t) for t in plot_x_list]
+  
+  if plot_data
+    plot(optim_list..., "x-")
+  end
+  plot(plot_x_list, plot_model(xm))
+  
+  return plot_x_list, plot_model(xm)
+end
 
 
 

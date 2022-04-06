@@ -33,36 +33,65 @@ function material_matrix_to_impedance(
             verbose = false
             )
            
-  @time params = get_prms_from_pairs(prms_pairs)         
+  if verbose
+    @time params = get_prms_from_pairs(prms_pairs)
+    @time header, A, b = material_matrix_to_lin_sys(material_matrix, params)          
   
-  @time header, A, b = material_matrix_to_lin_sys(material_matrix, params)          
-  
-  Z_list = []
-  A_eval = Matrix{complex_type}(undef, size(A)...)
-  
-  @time for i in 1:length(A[:])
-    if !(typeof(A[i]) <: Function)
-      
-      A_eval[i] = A[i]      
-    end  
-  end
-  
-  @show size(A)
-  b = convert.(complex_type, b)
-  for f in f_list
-    verbose && @show f
-    # critical line !!!
-    print(" $(f) -- ")
-    @time evaluate_matrix_for_w!(A_eval, A, 2*pi*f) 
+    Z_list = []
+    A_eval = Matrix{complex_type}(undef, size(A)...)
     
-    #return A_eval, b
-    @time if iterative_solver       
-      x = bicgstabl(A_eval, b)
-    else                
-      x = A_eval \ b
-    end      
-    push!(Z_list, 1/x[1])
+    @time for i in 1:length(A[:])
+      if !(typeof(A[i]) <: Function)
+        
+        A_eval[i] = A[i]      
+      end  
+    end
+    
+    
+    b = convert.(complex_type, b)
+    for f in f_list
+      verbose && @show f        
+      @time evaluate_matrix_for_w!(A_eval, A, 2*pi*f) 
+      
+      #return A_eval, b
+      @time if iterative_solver       
+        x = bicgstabl(A_eval, b)
+      else                
+        x = A_eval \ b
+      end      
+      push!(Z_list, 1/x[1])
+    end    
+  else
+    params = get_prms_from_pairs(prms_pairs)         
+    header, A, b = material_matrix_to_lin_sys(material_matrix, params)          
+  
+    Z_list = []
+    A_eval = Matrix{complex_type}(undef, size(A)...)
+        
+    for i in 1:length(A[:])
+      if !(typeof(A[i]) <: Function)
+        
+        A_eval[i] = A[i]      
+      end  
+    end
+            
+    b = convert.(complex_type, b)
+    for f in f_list
+      verbose && @show f        
+      evaluate_matrix_for_w!(A_eval, A, 2*pi*f) 
+      
+      #return A_eval, b
+      if iterative_solver       
+        x = bicgstabl(A_eval, b)
+      else                
+        x = A_eval \ b
+      end      
+      push!(Z_list, 1/x[1])
+    end
   end
+    
+  
+
   
   
   return f_list, Z_list      

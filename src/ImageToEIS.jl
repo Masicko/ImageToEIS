@@ -11,7 +11,7 @@ using Colors
 using DataFrames
 using CSV
 using Interpolations
-#using Optim
+using Optim
 
 using Base
 
