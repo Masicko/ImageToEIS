@@ -12,6 +12,7 @@ using DataFrames
 using CSV
 using Interpolations
 using Optim
+using SparseArrays
 
 using Base
 

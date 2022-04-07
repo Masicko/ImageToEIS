@@ -11,8 +11,18 @@ end
 
 # auxilary_A has 2 on left, m*n+3 on the right, -1 on top and bottom
 function dict_to_lin_sys(Z_dict, auxilary_A)
-  matrix_header = ["RHS"]
-  equation_rows = []  
+  matrix_header = String[]
+  
+  equation_rows = []
+  
+  sparse_input_row_idxs = Int64[]
+  sparse_input_col_idxs = Int64[]
+  sparse_input_vals = Union{Float64, Function}[]
+  sparse_input = (sparse_input_row_idxs, sparse_input_col_idxs, sparse_input_vals)
+  sys_row_idx = 0
+  
+  RHS = Float64[]
+  
   
   m,n = size(auxilary_A) .-(2,2)
   
@@ -28,12 +38,11 @@ function dict_to_lin_sys(Z_dict, auxilary_A)
   function add_value_to_matrix_row(matrix_header, equation_row, I_name, value)
       idx = find_idx(I_name, matrix_header)
       if idx == -1
-          push!(matrix_header, I_name)
-          push!(equation_row, value)
-      else
-          equation_row[idx] = value
+        idx = length(matrix_header) + 1
+        push!(matrix_header, I_name)
       end
-  end  
+      push!(equation_row, (idx, value))
+  end
   
   # TODO optimize
   function previous(i, j)    
@@ -56,9 +65,21 @@ function dict_to_lin_sys(Z_dict, auxilary_A)
     end
   end
   
+  function add_row_to_sparse_input!(sparse_input,
+                                    new_row, 
+                                    row_idx)
+    
+    
+    for item in new_row
+      push!(sparse_input[1], row_idx)
+      push!(sparse_input[2], item[1])
+      push!(sparse_input[3], typeof(item[2]) <: Number ? float(item[2]) : item[2])
+    end
+  end
+  
   # I vertices
-  function add_equation_I_row(i, j)  
-    new_row = zeros(length(matrix_header))
+  function add_equation_I_row(i, j)
+    new_row = []
     act_id = auxilary_A[i+1, j+1]    
     for node_id in previous(i,j)        
         I_name = get_I_name(node_id, act_id)
@@ -69,7 +90,12 @@ function dict_to_lin_sys(Z_dict, auxilary_A)
         add_value_to_matrix_row(matrix_header, new_row, I_name, 1)
     end
 
-    push!(equation_rows, new_row)    
+    sort!(new_row, by = first)
+    
+    sys_row_idx += 1
+    add_row_to_sparse_input!(sparse_input, new_row, sys_row_idx)
+    
+    push!(RHS, 0.0) 
     return
   end
 
@@ -108,12 +134,9 @@ function dict_to_lin_sys(Z_dict, auxilary_A)
     return paths_storage
   end
     
-  
+  # U equations
   for path in get_sufficient_paths(auxilary_A)
-      new_row = Vector(undef, length(matrix_header))
-      new_row .= 0
-      #new_row[1] = Sym("U")
-      new_row[1] = 1
+      new_row = []
       
       for (i, idx1) in enumerate(path[1:end-1])
           idx2 = path[i+1]
@@ -124,18 +147,26 @@ function dict_to_lin_sys(Z_dict, auxilary_A)
               Z_dict[get_Z_name(idx1, idx2)]
           )
       end
-      push!(equation_rows, new_row)
+    
+      sort!(new_row, by = first)
+    
+      sys_row_idx += 1
+      add_row_to_sparse_input!(sparse_input, new_row, sys_row_idx)
+      
+      push!(RHS, 1.0)
   end
   
-  sys_A = Matrix(undef, length(equation_rows), length(matrix_header)-1)
-  sys_A .= 0
-  sys_b = Vector(undef, length(equation_rows))
-  sys_b .= 0
-  for i in 1:size(sys_A)[1]
-      sys_A[i,1:length(equation_rows[i])-1] = equation_rows[i][2:end]
-      sys_b[i] = equation_rows[i][1]
-  end
-  return matrix_header, sys_A, sys_b
+  return matrix_header, sparse_input, RHS
+  
+#   sys_A = Matrix(undef, length(equation_rows), length(matrix_header)-1)
+#   sys_A .= 0
+#   sys_b = Vector(undef, length(equation_rows))
+#   sys_b .= 0
+#   for i in 1:size(sys_A)[1]
+#       sys_A[i,1:length(equation_rows[i])-1] = equation_rows[i][2:end]
+#       sys_b[i] = equation_rows[i][1]
+#   end
+#   return matrix_header, sys_A, sys_b
 end
 
 

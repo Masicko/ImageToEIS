@@ -1,14 +1,9 @@
-function evaluate_matrix_for_w!(A_eval, A, w)
-  m,n = size(A)
-  for i in 1:m
-    for j in 1:n
-      if typeof(A[i,j]) <: Function
-        A_eval[i,j] = A[i,j](w)
-      else
-        #A_eval[i,j] = A[i,j]
-      end
+function evaluate_matrix_for_w!(eval, template, w)
+  for i in 1:length(template)    
+    if typeof(template[i]) <: Function
+      eval[i] = template[i](w)
     end
-  end 
+  end
 end
 
 
@@ -35,23 +30,27 @@ function material_matrix_to_impedance(
            
   if verbose
     @time params = get_prms_from_pairs(prms_pairs)
-    @time header, A, b = material_matrix_to_lin_sys(material_matrix, params)          
+    @time header, sp_input, b_real = material_matrix_to_lin_sys(material_matrix, params)          
   
-    Z_list = []
-    A_eval = Matrix{complex_type}(undef, size(A)...)
+    nz_el_count = length(sp_input[3])
+    sp_input_vals_eval = Array{complex_type}(undef, nz_el_count)            
+      
     
-    @time for i in 1:length(A[:])
-      if !(typeof(A[i]) <: Function)
-        
-        A_eval[i] = A[i]      
+    Z_list = []
+    
+    @time for i in 1:nz_el_count
+      if !(typeof(sp_input[3][i]) <: Function)
+        sp_input_vals_eval[i] = sp_input[3][i]      
       end  
     end
     
     
-    b = convert.(complex_type, b)
+    b = convert.(complex_type, b_real)
     for f in f_list
       verbose && @show f        
-      @time evaluate_matrix_for_w!(A_eval, A, 2*pi*f) 
+      @time evaluate_matrix_for_w!(sp_input_vals_eval, sp_input[3], 2*pi*f) 
+      
+      A_eval = sparse(sp_input[1], sp_input[2], sp_input_vals_eval)
       
       #return A_eval, b
       @time if iterative_solver       
@@ -62,23 +61,28 @@ function material_matrix_to_impedance(
       push!(Z_list, 1/x[1])
     end    
   else
-    params = get_prms_from_pairs(prms_pairs)         
-    header, A, b = material_matrix_to_lin_sys(material_matrix, params)          
+    params = get_prms_from_pairs(prms_pairs)
+    header, sp_input, b_real = material_matrix_to_lin_sys(material_matrix, params)          
   
+    nz_el_count = length(sp_input[3])
+    sp_input_vals_eval = Array{complex_type}(undef, nz_el_count)            
+      
+    
     Z_list = []
-    A_eval = Matrix{complex_type}(undef, size(A)...)
-        
-    for i in 1:length(A[:])
-      if !(typeof(A[i]) <: Function)
-        
-        A_eval[i] = A[i]      
+    
+    for i in 1:nz_el_count
+      if !(typeof(sp_input[3][i]) <: Function)
+        sp_input_vals_eval[i] = sp_input[3][i]      
       end  
     end
-            
-    b = convert.(complex_type, b)
+    
+    
+    b = convert.(complex_type, b_real)
     for f in f_list
-      verbose && @show f        
-      evaluate_matrix_for_w!(A_eval, A, 2*pi*f) 
+      verbose && @show f        s
+      evaluate_matrix_for_w!(sp_input_vals_eval, sp_input[3], 2*pi*f) 
+      
+      A_eval = sparse(sp_input[1], sp_input[2], sp_input_vals_eval)
       
       #return A_eval, b
       if iterative_solver       
@@ -87,12 +91,9 @@ function material_matrix_to_impedance(
         x = A_eval \ b
       end      
       push!(Z_list, 1/x[1])
-    end
+    end 
   end
-    
-  
 
-  
   
   return f_list, Z_list      
 end
