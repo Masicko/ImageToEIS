@@ -24,6 +24,15 @@ end
 
 max_lin_idx(m,n) = aux_matrix_connectivity_entries_to_lin_idx(m*n + 1, m*n + 2, m, n)
 
+
+
+
+
+
+
+
+
+
 get_previous_list() = [(0, -1), (-1, 0)]
 get_next_list() = [(1, 0), (0, 1)]
 
@@ -61,6 +70,7 @@ end
 function add_row_to_sparse_input!(sparse_input,
                                   new_row, 
                                   row_idx)        
+  #@show row_idx
   for item in new_row
     push!(sparse_input[1], row_idx)
     push!(sparse_input[2], item[1])
@@ -87,14 +97,66 @@ function add_equation_I_row(i, j, auxilary_A, m, n, matrix_header, sys_row_idx, 
   return
 end
 
+
+function add_U_eq_for_each_relevant_path(Z_vector, auxilary_A, m, n, matrix_header, sys_row_idx, sparse_input, RHS)
+  A = auxilary_A[2:end-1, 2:end-1]
+  
+  for row in 1:m-1
+    for fall_point in n+1:-1:1        
+      new_row = []
+      # first index of each path is 2
+      idx1 = 2
+      column = 1
+      act_row = row
+      while column < n + 1        
+        idx2 = A[act_row, column]
+        add_value_to_matrix_row(
+            matrix_header, 
+            new_row, 
+            idx1, idx2,
+            Z_vector[aux_matrix_connectivity_entries_to_lin_idx(idx1, idx2, m, n)],
+            m, n
+        )
+        idx1 = idx2
+        #
+        if fall_point == column && act_row == row
+          act_row += 1
+        else
+          column += 1
+        end          
+      end
+      # last index of each path is m*n + 3
+      idx2 = m*n + 3
+      add_value_to_matrix_row(
+          matrix_header, 
+          new_row, 
+          idx1, idx2,
+          Z_vector[aux_matrix_connectivity_entries_to_lin_idx(idx1, idx2, m, n)],
+          m, n
+      )
+      #
+      sort!(new_row, by = first)
+      #@show sys_row_idx
+      sys_row_idx[1] += 1
+#       @show sparse_input
+#       @show new_row
+      add_row_to_sparse_input!(sparse_input, new_row, sys_row_idx[1])   
+#       @show sparse_input
+      push!(RHS, 1.0)      
+    end
+  end  
+  return
+end
+
+
 # auxilary_A has 2 on left, m*n+3 on the right, -1 on top and bottom
-function vector_to_lin_sys(Z_vector, auxilary_A)
+function vector_to_lin_sys(Z_vector, auxilary_A)  
+  # sparse_input =  (     sparse_input_row_idxs, 
+  #                       sparse_input_col_idxs,
+  #                       sparse_input_vals )
   matrix_header = String[]
   
-  sparse_input_row_idxs = Int64[]
-  sparse_input_col_idxs = Int64[]
-  sparse_input_vals = Union{Float64, Function}[]
-  sparse_input = (sparse_input_row_idxs, sparse_input_col_idxs, sparse_input_vals)
+  sparse_input = (Int64[], Int64[], Union{Float64, Function}[])
   sys_row_idx = [0]
   
   RHS = Float64[]
@@ -108,55 +170,15 @@ function vector_to_lin_sys(Z_vector, auxilary_A)
   # other vertices
   for i in 1:m, j in 1:n
       add_equation_I_row(i,j, auxilary_A, m, n, matrix_header, sys_row_idx, sparse_input, RHS)
-  end  
-    
-  # paths
-  paths_storage = []
-
-  function get_sufficient_paths(auxilary_A)
-    A = auxilary_A[2:end-1, 2:end-1]
-    for row in 1:m-1      
-      for fall_point in n+1:-1:1        
-        new_path = [2]            
-        column = 1
-        act_row = row
-        while column < n + 1
-          push!(new_path, A[act_row, column])
-          if fall_point == column && act_row == row
-            act_row += 1
-          else
-            column += 1
-          end          
-        end
-        push!(new_path, m*n + 3)
-        push!(paths_storage, deepcopy(new_path))
-      end
-    end
-    push!(paths_storage, deepcopy(auxilary_A[m+1, :]))
-    return paths_storage
   end
-    
+  
+  @show size(sparse(sparse_input...))
   # U equations
-  for path in get_sufficient_paths(auxilary_A)
-      new_row = []
-      
-      for (i, idx1) in enumerate(path[1:end-1])
-          idx2 = path[i+1]
-          add_value_to_matrix_row(
-              matrix_header, 
-              new_row, 
-              idx1, idx2,
-              Z_vector[aux_matrix_connectivity_entries_to_lin_idx(idx1, idx2, m, n)],
-              m, n
-          )
-      end
-      
-      sort!(new_row, by = first)
-    
-      sys_row_idx[1] += 1
-      add_row_to_sparse_input!(sparse_input, new_row, sys_row_idx[1])      
-      push!(RHS, 1.0)
-  end  
+  add_U_eq_for_each_relevant_path(Z_vector, auxilary_A, m, n, matrix_header, sys_row_idx, sparse_input, RHS)
+  @show length(RHS)
+  @show sys_row_idx
+  @show size(sparse(sparse_input...))
+  #@show RHS
   return matrix_header, sparse_input, RHS  
 end
 
