@@ -101,8 +101,8 @@ end
 function add_U_eq_for_each_relevant_path(Z_vector, auxilary_A, m, n, matrix_header, sys_row_idx, sparse_input, RHS)
   A = auxilary_A[2:end-1, 2:end-1]
   
-  for row in 1:m-1
-    for fall_point in n+1:-1:1        
+  for row in 1:m
+    for fall_point in n+1:-1: (row != m ? 1 : n+1)  
       new_row = []
       # first index of each path is 2
       idx1 = 2
@@ -136,15 +136,13 @@ function add_U_eq_for_each_relevant_path(Z_vector, auxilary_A, m, n, matrix_head
       )
       #
       sort!(new_row, by = first)
-      #@show sys_row_idx
+      
       sys_row_idx[1] += 1
-#       @show sparse_input
-#       @show new_row
       add_row_to_sparse_input!(sparse_input, new_row, sys_row_idx[1])   
-#       @show sparse_input
       push!(RHS, 1.0)      
     end
-  end  
+  end
+  
   return
 end
 
@@ -171,14 +169,10 @@ function vector_to_lin_sys(Z_vector, auxilary_A)
   for i in 1:m, j in 1:n
       add_equation_I_row(i,j, auxilary_A, m, n, matrix_header, sys_row_idx, sparse_input, RHS)
   end
-  
-  @show size(sparse(sparse_input...))
+    
   # U equations
   add_U_eq_for_each_relevant_path(Z_vector, auxilary_A, m, n, matrix_header, sys_row_idx, sparse_input, RHS)
-  @show length(RHS)
-  @show sys_row_idx
-  @show size(sparse(sparse_input...))
-  #@show RHS
+  
   return matrix_header, sparse_input, RHS  
 end
 

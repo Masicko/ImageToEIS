@@ -38,6 +38,7 @@ include("generate_matrix.jl")
 export generate_matrix
 export three_column_domain_template
 export three_column_domain_matrix
+export chess_matrix
 
 # macro stuff consisting of par study, evaluate results, ploting, cluster operations
 

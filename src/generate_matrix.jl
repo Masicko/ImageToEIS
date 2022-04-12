@@ -118,3 +118,13 @@ function three_column_domain_template(LSM_ratio1, LSM_ratio2, LSM_ratio3;
   return output
 end
 
+function chess_matrix(m, n)
+  A = Matrix{Int64}(undef, m,n)
+  A .= 0
+  for i in 1:m, j in 1:n
+      if mod(i+j, 2) == 0
+        A[i,j] = 1
+      end
+  end
+  return A
+end
