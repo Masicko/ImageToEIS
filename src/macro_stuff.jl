@@ -15,7 +15,7 @@ function elapsed_test(;n_max=70)
   for n in n_list
       println(" --- n = $(n) ---")
       push!(timings, 
-          @elapsed image_to_EIS(zeros(n,n), f_list=[0.01, 100000], pyplot=false)
+          @elapsed image_to_EIS(Int64.(zeros(n,n)), f_list=[0.01, 100000], pyplot=false)
       )
   end
   plot_results(n_list, timings)
@@ -26,7 +26,7 @@ function plot_fit(optim_list, model = (x,t) -> x[1]*exp(x[2] * t), unknown_count
                   extrapolation_list = nothing,
                   plot_data=true
                   )
-         
+          
   model_zde = x -> [model(x,t) for t in optim_list[1]]
     
   function to_opt(x)

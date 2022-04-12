@@ -8,7 +8,7 @@ function aux_matrix_connectivity_entries_to_lin_idx(x,y, m,n)
       return y - 1
     elseif y == m*n + 3
       #          y                - 2 + 1 ... for special case of right edge 
-      # (m*n + 3) + mod(x - 3, m) - 2 + 1 
+      # (m*n + 3) + mod(x - 3, m) - 2 + 1
       return m*n + 2 + mod(x - 3, m)
     # general case within the matrix
     # ... horizontal ... indexed first
@@ -23,6 +23,9 @@ function aux_matrix_connectivity_entries_to_lin_idx(x,y, m,n)
 end
 
 max_lin_idx(m,n) = aux_matrix_connectivity_entries_to_lin_idx(m*n + 1, m*n + 2, m, n)
+
+get_previous_list() = [(0, -1), (-1, 0)]
+get_next_list() = [(1, 0), (0, 1)]
 
 # auxilary_A has 2 on left, m*n+3 on the right, -1 on top and bottom
 function vector_to_lin_sys(Z_vector, auxilary_A)
@@ -55,13 +58,15 @@ function vector_to_lin_sys(Z_vector, auxilary_A)
       push!(equation_row, (lin_idx, value))
   end
   
-  # TODO optimize
   function previous(i, j)    
     if j == 0
       return [1]
     else
-      res = [auxilary_A[i+1, j-1+1], auxilary_A[i-1+1, j+1]]
-      deleteat!(res, findall(x->x==-1,res))
+      res = Array{Int64}(undef, length(get_previous_list()))
+      for (i, d) in enumerate(get_previous_list())
+        res[i] = auxilary_A[(i+1, j+1) .+ d...]        
+      end      
+      deleteat!(res, findall(x->x==-1,res))      
       return res
     end
   end
@@ -70,7 +75,10 @@ function vector_to_lin_sys(Z_vector, auxilary_A)
     if j == 0      
       return auxilary_A[2:end-1, 2]
     else
-      res = [auxilary_A[i+1+1, j+1], auxilary_A[i+1, j+1+1]]
+      res = Array{Int64}(undef, length(get_next_list()))
+      for (i, d) in enumerate(get_next_list())
+        res[i] = auxilary_A[(i+1, j+1) .+ d...]        
+      end      
       deleteat!(res, findall(x->x==-1,res))
       return res
     end
@@ -78,9 +86,7 @@ function vector_to_lin_sys(Z_vector, auxilary_A)
   
   function add_row_to_sparse_input!(sparse_input,
                                     new_row, 
-                                    row_idx)
-    
-    
+                                    row_idx)        
     for item in new_row
       push!(sparse_input[1], row_idx)
       push!(sparse_input[2], item[1])
@@ -88,10 +94,14 @@ function vector_to_lin_sys(Z_vector, auxilary_A)
     end
   end
   
-  # I vertices
+  # I verticesnext(i,j)
   function add_equation_I_row(i, j)
     new_row = []
-    act_id = auxilary_A[i+1, j+1]    
+    act_id = auxilary_A[i+1, j+1]   
+    
+    
+    @show (i,j), previous(i,j), next(i,j)    
+    
     for node_id in previous(i,j)                
         add_value_to_matrix_row(matrix_header, new_row, node_id, act_id, -1)
     end
