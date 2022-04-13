@@ -17,13 +17,82 @@ function aux_matrix_connectivity_entries_to_lin_idx(x,y, m,n)
     # ... vertical 
     else
       # max index for horiz. case  +  idx of x  -  col_number (because there are 1 less vertical connections than #of rows)
-      # (m*n + 3) + m - 2          +  x - 2     -  mod(x-3, n)
+      # (m*n + 3) + m - 2          +  x - 2     -  div(x-3, n)
       return m*(n + 1) + x - 1 - div(x-3, m)
     end
 end
 
-max_lin_idx(m,n) = aux_matrix_connectivity_entries_to_lin_idx(m*n + 1, m*n + 2, m, n)
+# 
+function aux_matrix_connectivity_entries_to_lin_idx(x,y, m,n,s)
+    if (x, y) == (1, 2)
+      return 1
+    elseif x == 2
+      # left end of electrode -> horizontal
+      # idx of y          + transpose to layer
+      # y - 2 + 1         + m*(n+1)*div(y-3, m*n)
+      return y - 1 + m*div(y-3, m*n)
+    elseif y == m*n*s + 3
+      # right end of electrode -> horizontal
+      # 1 + #of standard horizontal of the first layer    + #row                + transpose to layer
+      # 1 + m*n                                           + mod(x-3, m) + 1     + m*(n + 1)*div(x-3, m*n)
+      return m*n + 2 + mod(x-3,m) + m*(n+1)*div(x-3, m*n)
+    elseif div(x-3, m*n) == div(y-3, m*n) 
+      if mod(x - y, m) == 0
+        # horizontal
+        # idx of y          + transpose to layer
+        # y - 2 + 1         + m*(n+1)*div(x-3, m*n)
+        return y - 1 + m*div(y-3, m*n)
+      else
+        # vertical
+        # 1 + #horizontal    + idx of x    - #col   (because there is one connection less than row entries in each column)
+        # 1 + m*(n+1)*s     + x - 2       - div(x-3, m)
+        return m*(n+1)*s - 1 + x - div(x-3, m)
+      end          
+    else
+      # interlayer
+      # 1 + # horizontal  + #vertical     + idx of x
+      # 1 + m*(n+1)*s     + (m-1)*n*s     + x - 2
+      return (m*(2*n+1) - n)*s + x - 1     
+    end
+end
 
+
+
+function ans_322(in_f, x, y)
+  f(x, y) = in_f(x, y, 3,2,2)
+  
+  if (x,y) == (1,2); return f(x,y) == 1
+  elseif (x,y) == (2,3); return f(x,y) == 2
+  elseif (x,y) == (2,4); return f(x,y) == 3
+  elseif (x,y) == (2,5); return f(x,y) == 4
+  #
+  elseif (x,y) == (3,6); return f(x,y) == 5
+  elseif (x,y) == (4,7); return f(x,y) == 6
+  elseif (x,y) == (5,8); return f(x,y) == 7
+  #
+  elseif (x,y) == (6,15); return f(x,y) == 8
+  elseif (x,y) == (7,15); return f(x,y) == 9
+  elseif (x,y) == (8,15); return f(x,y) == 10
+  #
+  #
+  elseif (x,y) == (2,9); return f(x,y) == 11
+  elseif (x,y) == (2,10); return f(x,y) == 12
+  elseif (x,y) == (2,11); return f(x,y) == 13
+  #
+  elseif (x,y) == (9,12); return f(x,y) == 14
+  elseif (x,y) == (10,13); return f(x,y) == 15
+  elseif (x,y) == (11,14); return f(x,y) == 16
+  #
+  elseif (x,y) == (12,15); return f(x,y) == 17
+  elseif (x,y) == (13,15); return f(x,y) == 18
+  elseif (x,y) == (14,15); return f(x,y) == 19
+  else
+    return "ach jo"
+  end
+end
+
+max_lin_idx(m,n) = aux_matrix_connectivity_entries_to_lin_idx(m*n + 1, m*n + 2, m, n)
+max_lin_idx(m,n,s) = aux_matrix_connectivity_entries_to_lin_idx(m*n*(s-1) + 2, m*n*s + 2, m, n, s)
 
 
 
