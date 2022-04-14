@@ -8,7 +8,7 @@ function aux_matrix_connectivity_entries_to_lin_idx(x,y, m,n)
       return y - 1
     elseif y == m*n + 3
       #          y                - 2 + 1 ... for special case of right edge 
-      # (m*n + 3) + mod(x - 3, m) - 2 + 1
+      # (m*n + 3) + mod(x - 3, m) - 2 + 1      
       return m*n + 2 + mod(x - 3, m)
     # general case within the matrix
     # ... horizontal ... indexed first
@@ -91,8 +91,16 @@ function ans_322(in_f, x, y)
   end
 end
 
-max_lin_idx(m,n) = aux_matrix_connectivity_entries_to_lin_idx(m*n + 1, m*n + 2, m, n)
-max_lin_idx(m,n,s) = aux_matrix_connectivity_entries_to_lin_idx(m*n*(s-1) + 2, m*n*s + 2, m, n, s)
+max_lin_idx(m,n) =  if m==1
+                      aux_matrix_connectivity_entries_to_lin_idx(m*n + 2, m*n + 3, m, n)
+                    else
+                      aux_matrix_connectivity_entries_to_lin_idx(m*n + 1, m*n + 2, m, n)                      
+                    end
+max_lin_idx(m,n,s) =  if s==1
+                        max_lin_idx(m,n)
+                      else
+                        aux_matrix_connectivity_entries_to_lin_idx(m*n*(s-1) + 2, m*n*s + 2, m, n, s)
+                      end
 
 
 
@@ -157,13 +165,13 @@ function previous(i, j, auxilary_A)
 end
 
 function next(i,j,k, auxilary_A)
-  if j == 0      
+  if j == 0          
     return auxilary_A[2:end-1, 2, 2:end-1][:]
   else
-    res = Array{Int64}(undef, length(get_next_list(0,0,0)))
-    for (l, d) in enumerate(get_next_list(0,0,0))
+    res = Array{Int64}(undef, length(get_next_list(0,0,0)))        
+    for (l, d) in enumerate(get_next_list(0,0,0))      
       res[l] = auxilary_A[(i+1, j+1, k+1) .+ d...]        
-    end      
+    end          
     deleteat!(res, findall(x->x==-1,res))
     return res
   end
@@ -203,7 +211,7 @@ function add_equation_I_row(pos, auxilary_A, dims, matrix_header, sys_row_idx, s
       add_value_to_matrix_row(matrix_header, new_row, act_id, node_id, 1, dims)
   end
   
-  sort!(new_row, by = first)
+  sort!(new_row, by = first) 
   
   sys_row_idx[1] += 1
   add_row_to_sparse_input!(sparse_input, new_row, sys_row_idx[1])    
@@ -273,7 +281,7 @@ function add_U_eq_for_each_relevant_path!(Z_vector, auxilary_A::Array{<:Integer,
       end
     end
   end
-
+  
   
   for layer in 1:s-1
     for row in 1:m
@@ -317,8 +325,7 @@ function add_U_eq_for_each_relevant_path!(Z_vector, auxilary_A::Array{<:Integer,
         push!(RHS, 1.0)      
       end
     end
-  end  
-  
+  end    
   return
 end
 
@@ -500,7 +507,7 @@ function get_auxilary_graph_matrix(m, n, s)
     #
     A_aux[2:end-1, 2:end-1, 2:end-1] = pre_A
     A_aux[:, 1, :] .= 2
-    A_aux[:, end, :] .= m*n+3
+    A_aux[:, end, :] .= m*n*s+3
     A_aux[1, :,  :] .= -1
     A_aux[end, :, :] .= -1
     A_aux[:, :, 1] .= -1

@@ -12,11 +12,22 @@ function generate_random_specification(LSM_ratio, porosity)
 end
 
 # generate random matrix of dimensions 
-function generate_matrix(dimensions::Union{Tuple, Array}, porosity::Float64, LSM_ratio::Float64)
+function generate_matrix(dimensions::Tuple{T, T} where T <: Integer, porosity::Float64, LSM_ratio::Float64)
   return rand(
                           generate_random_specification(LSM_ratio, porosity), 
                           dimensions...
          )
+end
+
+function generate_matrix(dimensions::Tuple{T, T, T} where T <: Integer, porosity::Float64, LSM_ratio::Float64)
+  res = Array{Int64}(undef, dimensions...)
+  for layer in 1:dimensions[3]
+    res[:, :, layer] = rand(
+                          generate_random_specification(LSM_ratio, porosity), 
+                          dimensions[1], dimensions[2]
+                      )
+  end
+  return res
 end
 
 function generate_submatrix_to_matrix(matrix, left_upper::Union{Tuple, Array}, right_lower::Union{Tuple, Array}, porosity::Float64, LSM_ratio::Float64)

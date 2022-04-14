@@ -72,7 +72,12 @@ function image_to_EIS(
   
   if return_specific_impedance
     #normalize output
-    Z_list .*= size(material_matrix)[1] / size(material_matrix)[2]
+    dims = size(material_matrix)
+    if length(dims) == 2
+      Z_list .*= dims[1] / dims[2]
+    else
+      Z_list .*= dims[1]*dims[3] / dims[2]
+    end
   end
   
   
@@ -127,7 +132,7 @@ function image_to_EIS(
         change_extension_to(export_z_file, input_path[end-2 : end]),
         force=true
       )
-    elseif save_also_image != ""      
+    elseif save_also_image != "" && length(size(material_matrix)) == 2 
       matrix_to_file(save_also_image, material_matrix)
     end
   end
