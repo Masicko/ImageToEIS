@@ -8,14 +8,14 @@ function plot_results(n_list, timings)
 end
 
 
-function elapsed_test(;n_max=70)
+function elapsed_test(;n_max=70, mode_3D=false)
   timings = []
   
   n_list = collect(5 : 5 : n_max)
   for n in n_list
       println(" --- n = $(n) ---")
       push!(timings, 
-          @elapsed image_to_EIS(Int64.(zeros(n,n)), f_list=[0.01, 100000], pyplot=false)
+          @elapsed image_to_EIS(Int64.(mode_3D ? zeros(n,n,n) : zeros(n,n)), f_list=[0.01, 100000], pyplot=false)
       )
   end
   plot_results(n_list, timings)
