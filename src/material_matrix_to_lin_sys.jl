@@ -119,8 +119,11 @@ end
 
 
 
-get_previous_list() = [(0, -1), (-1, 0)]
-get_next_list() = [(1, 0), (0, 1)]
+get_previous_list(m, n) = [(0, -1), (-1, 0)]
+get_next_list(m, n) = [(1, 0), (0, 1)]
+
+get_previous_list(m, n, s) = [(0, -1, 0), (-1, 0, 0), (0, 0, -1)]
+get_next_list(m, n, s) = [(1, 0, 0), (0, 1, 0), (0, 0, 1)]
 
 function previous(i, j, auxilary_A)    
   if j == 0
@@ -311,11 +314,8 @@ end
 
 
 
-
-
-
 function get_auxilary_graph_matrix(m, n)
-    A = Matrix{Int64}(undef, m+2, n+2)
+    A_aux = Array{Int64}(undef, m+2, n+2)
     #
     aux_vec = Vector{Int64}(undef, m*n)
     for i in 1:length(aux_vec)
@@ -323,42 +323,74 @@ function get_auxilary_graph_matrix(m, n)
     end
     pre_A = reshape(aux_vec, m, n)
     #
-    A[2:end-1, 2:end-1] = pre_A
-    A[:, 1] .= 2
-    A[:, end] .= m*n+3
-    A[1, :] .= -1
-    A[end, :] .= -1
-    return A
+    A_aux[2:end-1, 2:end-1] = pre_A
+    A_aux[:, 1] .= 2
+    A_aux[:, end] .= m*n+3
+    A_aux[1, :] .= -1
+    A_aux[end, :] .= -1    
+    return A_aux
 end
 
 
-function get_large_material_matrix(pre_A)
-    (m,n) = size(pre_A)
-    A = Matrix{Int64}(undef, m+2, n+2)
-    A[2:end-1, 2:end-1] = pre_A
-    A[:, 1] .= i_LSM
-    A[:, end] .= i_LSM
-    A[1, :] .= -1
-    A[end, :] .= -1    
+function get_auxilary_graph_matrix(m, n, s)
+    A_aux = Array{Int64}(undef, m+2, n+2, s+2)
+    #
+    aux_vec = Vector{Int64}(undef, m*n*s)
+    for i in 1:length(aux_vec)
+        aux_vec[i] = i+2
+    end
+    pre_A = reshape(aux_vec, m, n, s)
+    #
+    A_aux[2:end-1, 2:end-1, 2:end-1] = pre_A
+    A_aux[:, 1, :] .= 2
+    A_aux[:, end, :] .= m*n+3
+    A_aux[1, :,  :] .= -1
+    A_aux[end, :, :] .= -1
+    A_aux[:, :, 1] .= -1
+    A_aux[:, :, end] .= -1
+    return A_aux
+end
+
+function get_large_material_matrix(pre_A::Array{<:Integer, 2})
+  (m,n) = size(pre_A)
+  A = Array{Int64}(undef, m+2, n+2)
+  A[2:end-1, 2:end-1] = pre_A
+  A[:, 1] .= i_LSM
+  A[:, end] .= i_LSM
+  A[1, :] .= -1
+  A[end, :] .= -1              
+  return A
+end
+
+function get_large_material_matrix(pre_A::Array{<:Integer, 3})            
+    (m,n,s) = size(pre_A)
+    A = Array{Int64}(undef, m+2, n+2, s+2)
+    A[2:end-1, 2:end-1, 2:end-1] = pre_A
+    A[:, 1, :] .= i_LSM
+    A[:, end, :] .= i_LSM
+    A[1, :, :] .= -1
+    A[end, :, :] .= -1        
+    A[:, :, 1] .= -1
+    A[:, :, end] .= -1
     return A
 end
 
-function add_Z_to_vector!(Z_vector, i,j, k, l, aux_A, large_material_A, p, m, n)
-    n1 = large_material_A[i,j]
-    n2 = large_material_A[i+k, j+l]
+function add_Z_to_vector!(Z_vector, pos, dir, aux_A, large_material_A, p, dims)
+    n1 = large_material_A[pos...]
+    n2 = large_material_A[pos .+ dir...]
     if n2 == -1
         return  
     end
     
-    idx1 = aux_A[i, j]
-    idx2 = aux_A[i+k, j+l]
+    idx1 = aux_A[pos...]
+    idx2 = aux_A[pos .+ dir...]
     if idx2 < idx1
         aux = idx1
         idx1 = idx2
         idx2 = aux
     end
     
-    current_key = aux_matrix_connectivity_entries_to_lin_idx(idx1, idx2, m, n)
+    current_key = aux_matrix_connectivity_entries_to_lin_idx(idx1, idx2, dims...)
     if Z_vector[current_key] == 0
         Z_vector[current_key] = 
             get_Z_entry_from_material_matrix_codes(n1, n2, p)            
@@ -371,26 +403,41 @@ end
 
 
 function material_matrix_to_lin_sys(
-            material_A::Matrix{<:Integer}=[0 0 0; 1 1 1],
+            material_A::Array{<:Integer}=[0 0 0; 1 1 1],
             p::parameters=parameters()
     )
-    (m,n) = size(material_A)
-    aux_A = get_auxilary_graph_matrix(m,n)
+    
+    dims = size(material_A)
+    mode_3D = length(dims) == 3
+    aux_A = get_auxilary_graph_matrix(dims...)
     large_material_A = get_large_material_matrix(material_A)
     
-    Z_vector = Vector{Union{Function}}(undef, max_lin_idx(m,n))
+    Z_vector = Vector{Union{Function}}(undef, max_lin_idx(dims...))
     Z_vector .= w -> 0
-    for i in 2:m+1
-      for j in 2:n+1
-        for d in vcat(get_previous_list(), get_next_list())          
-          add_Z_to_vector!(Z_vector, i,j, d..., aux_A, large_material_A, p, m, n)
+    for d in vcat(get_previous_list(dims...), get_next_list(dims...))  
+      for i in 2:dims[1]+1
+        for j in 2:dims[2]+1                
+          if mode_3D
+            for k in 2:dims[3]+1
+              add_Z_to_vector!(Z_vector, (i, j, k), d, aux_A, large_material_A, p, dims)
+            end
+          else
+            add_Z_to_vector!(Z_vector, (i, j), d, aux_A, large_material_A, p, dims)
+          end
         end
       end
     end
-    for i in 2:m+1
-      add_Z_to_vector!(Z_vector, i,1, 0, +1, aux_A, large_material_A, p, m, n)
-      add_Z_to_vector!(Z_vector, i,n+2, 0, -1, aux_A, large_material_A, p, m, n)
+    for i in 2:dims[1]+1
+      if mode_3D
+        for k in 2:dims[3]+1
+          add_Z_to_vector!(Z_vector, (i,1, k), (0, +1, 0), aux_A, large_material_A, p, dims)
+          add_Z_to_vector!(Z_vector, (i,dims[2]+2, k), (0, -1, 0), aux_A, large_material_A, p, dims)
+        end
+      else
+        add_Z_to_vector!(Z_vector, (i,1), (0, +1), aux_A, large_material_A, p, dims)
+        add_Z_to_vector!(Z_vector, (i,dims[2]+2), (0, -1), aux_A, large_material_A, p, dims)
+      end
     end    
-    #return Z_vector
-    return vector_to_lin_sys(Z_vector, aux_A)    
+    return Z_vector, aux_A, large_material_A
+    #return vector_to_lin_sys(Z_vector, aux_A)    
 end
