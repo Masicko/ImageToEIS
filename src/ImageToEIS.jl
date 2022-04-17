@@ -49,6 +49,7 @@ export par_study
 
 include("temperature_dependences.jl")
 export TI
+export TI_2D
 
 
 end # module
