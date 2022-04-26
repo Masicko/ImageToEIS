@@ -27,7 +27,7 @@ function TI_clank(label)
     )
   elseif label == "R_YSZ"
     # ok data from pure YSZ (porosity = 0.0)
-    return fixed_R_YSZ
+    return fixed_R_YSZ()
  end  
 end
 
@@ -44,7 +44,7 @@ function TI(label)
     )
   elseif label == "R_YSZ"
     # ok data from pure YSZ (porosity = 0.0)
-    return fixed_R_YSZ
+    return fixed_R_YSZ()
  end
 end
 
@@ -61,7 +61,7 @@ function TI_2D(label)
     )
   elseif label == "R_YSZ"
     # ok data from pure YSZ (porosity = 0.0)
-    return fixed_R_YSZ
+    return fixed_R_YSZ()
  end
 end
 
