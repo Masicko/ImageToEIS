@@ -587,23 +587,27 @@ end
 function show_plots(x_axis, other_parameters, dir="snehurka/par_study/"; 
         specific_symbol="", 
         apply_func= x -> x, 
-        throw_exception=true)
+        throw_exception=true,
+        plot_bool=true
+        )
   collected_df = collect_df_files_in_folder(dir)
   #@show collected_df
   grouped_df = get_grouped_processed_df(collected_df, x_axis, other_parameters, specific_symbol=specific_symbol, throw_exception=throw_exception)
   
-  for (key, sub_df) in pairs(grouped_df)
-    legend_entry = "$(key)"[12:end-1]
-    sort!(sub_df, x_axis)
-    @show sub_df
-    plot_par_study_results(
-      sub_df[!, x_axis], 
-      apply_func.(sub_df[!, :R]), 
-      apply_func.(sub_df[!, :R_pol]),  
-      apply_func.(sub_df[!, :C_pol]),
-      label=legend_entry,
-      x_axis_label=x_axis
-    )    
+  if plot_bool
+    for (key, sub_df) in pairs(grouped_df)
+      legend_entry = "$(key)"[12:end-1]
+      sort!(sub_df, x_axis)
+      @show sub_df
+      plot_par_study_results(
+        sub_df[!, x_axis], 
+        apply_func.(sub_df[!, :R]), 
+        apply_func.(sub_df[!, :R_pol]),  
+        apply_func.(sub_df[!, :C_pol]),
+        label=legend_entry,
+        x_axis_label=x_axis
+      )    
+    end
   end
   return grouped_df
 end
