@@ -594,10 +594,10 @@ function show_plots(x_axis, other_parameters, dir="snehurka/par_study/";
   #@show collected_df
   grouped_df = get_grouped_processed_df(collected_df, x_axis, other_parameters, specific_symbol=specific_symbol, throw_exception=throw_exception)
   
-  if plot_bool
-    for (key, sub_df) in pairs(grouped_df)
-      legend_entry = "$(key)"[12:end-1]
-      sort!(sub_df, x_axis)
+  for (key, sub_df) in pairs(grouped_df)
+    legend_entry = "$(key)"[12:end-1]
+    sort!(sub_df, x_axis)
+    if plot_bool
       @show sub_df
       plot_par_study_results(
         sub_df[!, x_axis], 
