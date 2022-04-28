@@ -13,6 +13,7 @@ using CSV
 using Interpolations
 using Optim
 using SparseArrays
+using Statistics
 
 using Base
 

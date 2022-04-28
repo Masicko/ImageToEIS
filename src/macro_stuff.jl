@@ -558,7 +558,7 @@ function test_if_all_changing_prms_were_assigned(df, keys)
   return true
 end
 
-function get_grouped_processed_df(collected_df, x_axis, other_parameters; specific_symbol="", throw_exception=true)
+function get_grouped_processed_df(collected_df, x_axis, other_parameters; specific_symbol="", throw_exception=true, show_var)
   processed_df = deepcopy(collected_df)    
   
   keys_to_group = []
@@ -580,19 +580,37 @@ function get_grouped_processed_df(collected_df, x_axis, other_parameters; specif
     end
   end
   #
-  df_to_plot = combine(gdf, ["R", "R_pol", "C_pol"] .=> arr -> sum(arr)/length(arr), renamecols = false)
+#   if show_var
+    df_to_plot = combine(gdf, 
+      ["R", "R_pol", "C_pol"] .=> mean, 
+      ["R", "R_pol", "C_pol"] .=> var    
+    )
+#   else
+#     df_to_plot = combine(gdf, 
+#       ["R", "R_pol", "C_pol"] .=> mean     
+#     )
+#   end
   return groupby(df_to_plot, keys_to_group)
 end
+
 
 function show_plots(x_axis, other_parameters, dir="snehurka/par_study/"; 
         specific_symbol="", 
         apply_func= x -> x, 
         throw_exception=true,
-        plot_bool=true
+        plot_bool=true,
+        show_var=false
         )
   collected_df = collect_df_files_in_folder(dir)
   #@show collected_df
-  grouped_df = get_grouped_processed_df(collected_df, x_axis, other_parameters, specific_symbol=specific_symbol, throw_exception=throw_exception)
+  grouped_df = get_grouped_processed_df(
+                    collected_df, 
+                    x_axis, 
+                    other_parameters, 
+                    specific_symbol=specific_symbol, 
+                    throw_exception=throw_exception, 
+                    show_var=show_var
+                )
   
   for (key, sub_df) in pairs(grouped_df)
     legend_entry = "$(key)"[12:end-1]
@@ -601,12 +619,25 @@ function show_plots(x_axis, other_parameters, dir="snehurka/par_study/";
       @show sub_df
       plot_par_study_results(
         sub_df[!, x_axis], 
-        apply_func.(sub_df[!, :R]), 
-        apply_func.(sub_df[!, :R_pol]),  
-        apply_func.(sub_df[!, :C_pol]),
+        apply_func.(sub_df[!, :R_mean]), 
+        apply_func.(sub_df[!, :R_pol_mean]),  
+        apply_func.(sub_df[!, :C_pol_mean]),        
         label=legend_entry,
-        x_axis_label=x_axis
-      )    
+        x_axis_label=x_axis,
+        title="Mean"
+      )
+      if show_var
+        plot_par_study_results(
+          sub_df[!, x_axis], 
+          apply_func.(sub_df[!, :R_var]), 
+          apply_func.(sub_df[!, :R_pol_var]),  
+          apply_func.(sub_df[!, :C_pol_var]),        
+          label=legend_entry,
+          x_axis_label=x_axis,
+          fig_num=6,
+          title="Var"
+        )
+      end
     end
   end
   return grouped_df
@@ -614,9 +645,11 @@ end
 
 
 
-function plot_par_study_results(x, R, Rp, Cp; label="", x_axis_label)
-  figure(5)
-  #suptitle("YSZ-LSM-hole 50x50 random distribution test - repetitions for each conditions")
+function plot_par_study_results(x, R, Rp, Cp; label="", x_axis_label, fig_num=5, title="")
+  figure(fig_num)
+  if length(title) > 0
+    suptitle(title)
+  end
   
   subplot(221)
   @show R
