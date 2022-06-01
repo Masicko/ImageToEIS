@@ -47,7 +47,7 @@ end
 
 function file_to_matrix(path="src/geometry.png")
   RGB_m = load(path)
-  m = Matrix(undef, size(RGB_m)...)
+  m = Matrix{Int}(undef, size(RGB_m)...)
   for i in 1:size(m)[1]
     for j in 1:size(m)[2]
       (r,g,b) = (RGB_m[i,j].r, RGB_m[i,j].g, RGB_m[i,j].b)

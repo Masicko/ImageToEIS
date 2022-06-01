@@ -74,10 +74,10 @@ function generate_matrix(submatrix_list::Array=get_default_submatrix_list())
     end    
   end  
   
-  output_matrix = Matrix(undef, max_height, max_width)
+  output_matrix = Matrix{Int16}(undef, max_height, max_width)
   output_matrix .= -1
 
-  for submatrix in submatrix_list 
+  for submatrix in submatrix_list
     generate_submatrix_to_matrix(output_matrix, submatrix...)    
   end 
   invalid_submatrix_list = false
@@ -119,7 +119,7 @@ function three_column_domain_template(LSM_ratio1, LSM_ratio2, LSM_ratio3;
     [(1, fourth_block_column + 1), (height, width), 0.0, 1.0]
   ]
   
-  # contacts 
+  # contacts
   for p_of_contact in positions_of_contacts
     push!(output, 
         [(p_of_contact, 1), (p_of_contact + height_of_contacts - 1, first_block_column), 0.0, 1.0]
