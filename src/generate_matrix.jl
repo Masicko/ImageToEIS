@@ -314,6 +314,15 @@ end
 
 
 
+function typical_use_shoot_pores()
+  mm = ImageToEIS.shoot_pores((20, 20, 20), 0.7, 0.4, 0.0)
+  ImageToEIS.matrix_to_file("jojojjoooojoooo.png", mm)
+  println(ImageToEIS.check_material_connection( 
+      mm
+      )
+  )
+
+end
 
 
 function test_shoot_pores()
@@ -364,35 +373,40 @@ function get_standard_domain(ext_domain)
   end
 end
 
+function get_body_list(domain)
+  dims = size(domain)
+  if length(dims) == 2
+    return [(x,y) for x in 1:dims[1], y in 1:dims[2]][:]
+  elseif length(size(domain)) == 3
+    return [(x,y,z) for x in 1:dims[1], y in 1:dims[2], z in 1:dims[3]][:]
+  else
+    prinltn("ERROR: length(size(domain)) $(length(size(domain))) != 2 or 3")
+    return throw(Exception)
+  end  
+end
+
 function shoot_pores(dims, porosity, LSM_ratio, por_prob)
-  domain = generate_matrix(dims, 0.0, 0.0)
+  domain = Array{Integer}(undef, dims)
   boundary_pore_list = []
-  body_list = [(x,y) for x in 1:dims[1], y in 1:dims[2]]
-  
-  pix_tot = dims[1]*dims[2]
+  body_list = get_body_list(domain)
+  #
+  pix_tot = prod(dims)
   pix_por = Int32(round(porosity*pix_tot))
   
   
-  extended_domain = aux_domain(domain, boundary_number=-1)
+  extended_domain = aux_domain(domain, inner_number=i_YSZ, boundary_number=-1)
   
   
-  for i in 1:pix_por
-    
-    #println("i = $(i) ..............")
+  for i in 1:pix_por        
     mother_item_idx = nothing
-    if (rand() <= por_prob) && (length(boundary_pore_list) > 0)
-        mother_item_idx = rand(1:length(boundary_pore_list))
-        
-        swapping_item_indices = get_indicies_of_random_neighbour(extended_domain, boundary_pore_list[mother_item_idx])
-    
-        
-        swapping_item_idx = findall(x -> x == swapping_item_indices, body_list[:])[1]
-    else
+    if (rand() <= por_prob) && (length(boundary_pore_list) > 0)        
+        mother_item_idx = rand(1:length(boundary_pore_list))        
+        swapping_item_indices = get_indicies_of_random_neighbour(extended_domain, boundary_pore_list[mother_item_idx])        
+        swapping_item_idx = findall(x -> x == swapping_item_indices, body_list)[1]
+    else        
         swapping_item_idx = rand(1:length(body_list)) 
         swapping_item_indices = body_list[swapping_item_idx]
     end
-    
-    
     
     
     extended_domain[swapping_item_indices .+ ext_correction(domain)...] = i_hole
@@ -404,7 +418,7 @@ function shoot_pores(dims, porosity, LSM_ratio, por_prob)
     for dir in search_dirs(domain)
       
         if !check_pore_is_boundary(extended_domain, swapping_item_indices .+ dir)          
-          search_result = findall(x -> x == swapping_item_indices .+ dir, boundary_pore_list[:])
+          search_result = findall(x -> x == swapping_item_indices .+ dir, boundary_pore_list)
       
           if length(search_result) > 0
             deleteat!(boundary_pore_list, search_result[1])
@@ -416,9 +430,8 @@ function shoot_pores(dims, porosity, LSM_ratio, por_prob)
       if !(swapping_item_indices in boundary_pore_list)
         push!(boundary_pore_list, swapping_item_indices)
       end
-    end
-    deleteat!(body_list[:], swapping_item_idx)
-    
+    end    
+    deleteat!(body_list, swapping_item_idx)
   end
   
   for i in 1:length(extended_domain[:])
