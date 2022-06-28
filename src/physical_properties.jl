@@ -2,6 +2,8 @@ const i_YSZ = 0
 const i_LSM = 1
 const i_hole = 2
 
+const i_material_list = [0,1]
+
 
 Base.@kwdef mutable struct parameters        
     R_YSZ::Float64 = 1/0.045 # S/cm

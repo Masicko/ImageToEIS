@@ -139,3 +139,350 @@ function chess_matrix(m, n)
   end
   return A
 end
+
+function aux_domain(domain::Array{T} where T<: Integer; inner_number=nothing, boundary_number=0)
+  if length(size(domain)) == 2
+    aux_matrix = Matrix{Integer}(undef, size(domain) .+ (2,2))
+    if typeof(inner_number) == Nothing
+      aux_matrix[2:end-1, 2:end-1] = domain
+    else
+      aux_matrix[:, :] .= inner_number
+    end
+    aux_matrix[:, 1] .= boundary_number
+    aux_matrix[:, end] .= boundary_number
+    #
+    aux_matrix[1, :] .= boundary_number
+    aux_matrix[end, :] .= boundary_number
+    #
+    return aux_matrix
+  elseif length(size(domain)) == 3
+    aux_matrix = Array{Integer}(undef, size(domain) .+ (2,2,2))
+    if typeof(inner_number) == Nothing
+      aux_matrix[2:end-1, 2:end-1, 2:end-1] = domain
+    else
+      aux_matrix[:, :, :] .= inner_number
+    end
+
+    aux_matrix[:, end, :] .= boundary_number
+    aux_matrix[:, 1, :]   .= boundary_number
+    #
+    aux_matrix[1, :, :]   .= boundary_number
+    aux_matrix[end, :, :] .= boundary_number
+    #
+    aux_matrix[:, :, 1]   .= boundary_number
+    aux_matrix[:, :, end] .= boundary_number
+    #
+    return aux_matrix
+  else
+    prinltn("ERROR: length(size(domain)) $(length(size(domain))) != 2 or 3")
+    return throw(Exception)
+  end  
+end
+
+function search_dirs(domain::Array{T} where T<: Integer)
+  if length(size(domain)) == 2
+    return search_dirs = [(1,0), (-1,0), (0, 1), (0, -1)]
+  elseif length(size(domain)) == 3
+    return search_dirs = [(1,0,0), (-1,0,0), (0, 1,0), (0, -1, 0), (0, 0, 1), (0, 0, -1)]
+  else
+    prinltn("ERROR: length(size(domain)) $(length(size(domain))) != 2 or 3")
+    return throw(Exception)
+  end
+end
+
+
+function check_material_connection(domain::Array{T} where T <: Integer)
+  if length(size(domain)) == 2
+    dims = 2
+  else
+    dims = 3
+  end  
+  
+  if dims == 2
+    aux_matrix = Matrix{Integer}(undef, size(domain) .+ (2,1))
+    aux_matrix .= 1 
+    aux_matrix[:, 1] .= 0
+    #
+    aux_matrix[1, :] .= 0
+    aux_matrix[end, :] .= 0
+    
+    search_dirs = [(1,0), (-1,0), (0, 1), (0, -1)]
+  end
+  
+  if dims == 3
+    aux_matrix = Array{Integer}(undef, size(domain) .+ (2,1,2))
+  
+    aux_matrix .= 1 
+    aux_matrix[:, 1, :] .= 0
+    #
+    aux_matrix[1, :, :] .= 0
+    aux_matrix[end, :, :] .= 0
+    #
+    aux_matrix[:, :, 1] .= 0
+    aux_matrix[:, :, end] .= 0
+    
+    search_dirs = [(1,0,0), (-1,0,0), (0, 1,0), (0, -1, 0), (0, 0, 1), (0, 0, -1)]
+  end
+  
+  is_connected=false  
+  
+  
+  if dims==2
+    function search_around_this(x,y)
+      if y==size(aux_matrix)[2]
+        is_connected=true
+        return true
+      else
+        if (aux_matrix[x,y] == 1) 
+          #@show x,y
+          if (domain[x-1, y-1] in i_material_list)          
+            aux_matrix[x,y] = 2          
+            for dir in search_dirs
+              search_around_this(((x,y) .+ dir)...)
+            end
+          else
+            aux_matrix[x,y] = 0
+          end
+        end
+      end
+    end
+    for row in 1:size(domain)[1]
+      search_around_this(row+1,2)
+    end
+  
+  
+  else
+    
+    function search_around_this_3D(x,y,z)      
+      if y==size(aux_matrix)[2]
+        is_connected=true
+        return true
+      else
+        if (aux_matrix[x,y,z] == 1)           
+          if (domain[x-1, y-1, z-1] in i_material_list)                      
+            aux_matrix[x,y,z] = 2          
+            for dir in search_dirs              
+              search_around_this_3D(((x,y,z) .+ dir)...)
+            end
+          else
+            aux_matrix[x,y, z] = 0
+          end        
+        end
+      end
+    end
+    
+    for row in 1:size(domain)[1], layer in 1:size(domain)[3]
+      search_around_this_3D(row+1, 2, layer+1)
+    end    
+  end
+  
+  return is_connected
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function test_shoot_pores()
+  return shoot_pores((10, 10), 0.5, 0.4, 0.1)
+end
+
+
+
+
+function ext_correction(domain)
+  if length(size(domain)) == 2
+    return (1, 1)
+  else
+    return (1,1,1)
+  end  
+end
+
+function check_pore_is_boundary(ext_domain, pos)
+  is_boundary = false
+  ext_corr = ext_correction(ext_domain)
+  if ext_domain[pos .+ ext_corr...] == -1
+    return false
+  end
+  for dir in search_dirs(ext_domain)
+    if (ext_domain[pos .+ dir .+ ext_corr...] != i_hole) && (ext_domain[pos .+ dir .+ ext_corr...] != -1)
+      is_boundary = true
+    end
+  end
+  return is_boundary
+end
+
+function get_indicies_of_random_neighbour(ext_domain, pos)
+  neigh_list = []
+  for dir in search_dirs(ext_domain)
+    test_pos = pos .+ dir .+ ext_correction(ext_domain)
+    if (ext_domain[test_pos...] != i_hole) && (ext_domain[test_pos...] != -1)
+      push!(neigh_list, test_pos)
+    end
+  end
+  return neigh_list[Int32(rand(1:length(neigh_list)))] .- ext_correction(ext_domain)  
+end
+
+function get_standard_domain(ext_domain)
+  if length(size(ext_domain)) == 2
+    return ext_domain[2:end-1, 2:end-1]
+  else
+    return ext_domain[2:end-1, 2:end-1, 2:end-1]
+  end
+end
+
+function shoot_pores(dims, porosity, LSM_ratio, por_prob)
+  domain = generate_matrix(dims, 0.0, 0.0)
+  boundary_pore_list = []
+  body_list = [(x,y) for x in 1:dims[1], y in 1:dims[2]]
+  
+  pix_tot = dims[1]*dims[2]
+  pix_por = Int32(round(porosity*pix_tot))
+  
+  
+  extended_domain = aux_domain(domain, boundary_number=-1)
+  
+  
+  for i in 1:pix_por
+    
+    #println("i = $(i) ..............")
+    mother_item_idx = nothing
+    if (rand() <= por_prob) && (length(boundary_pore_list) > 0)
+        mother_item_idx = rand(1:length(boundary_pore_list))
+        
+        swapping_item_indices = get_indicies_of_random_neighbour(extended_domain, boundary_pore_list[mother_item_idx])
+    
+        
+        swapping_item_idx = findall(x -> x == swapping_item_indices, body_list[:])[1]
+    else
+        swapping_item_idx = rand(1:length(body_list)) 
+        swapping_item_indices = body_list[swapping_item_idx]
+    end
+    
+    
+    
+    
+    extended_domain[swapping_item_indices .+ ext_correction(domain)...] = i_hole
+    
+    if (typeof(mother_item_idx) != Nothing) && !check_pore_is_boundary(extended_domain, boundary_pore_list[mother_item_idx])
+      deleteat!(boundary_pore_list, mother_item_idx)      
+    end
+    
+    for dir in search_dirs(domain)
+      
+        if !check_pore_is_boundary(extended_domain, swapping_item_indices .+ dir)          
+          search_result = findall(x -> x == swapping_item_indices .+ dir, boundary_pore_list[:])
+      
+          if length(search_result) > 0
+            deleteat!(boundary_pore_list, search_result[1])
+          end
+        end
+    end
+    
+    if check_pore_is_boundary(extended_domain, swapping_item_indices)
+      if !(swapping_item_indices in boundary_pore_list)
+        push!(boundary_pore_list, swapping_item_indices)
+      end
+    end
+    deleteat!(body_list[:], swapping_item_idx)
+    
+  end
+  
+  for i in 1:length(extended_domain[:])
+    if (extended_domain[i] != -1) && (extended_domain[i] != i_hole)
+      if rand() < LSM_ratio
+        extended_domain[i] = i_LSM
+      else
+        extended_domain[i] = i_YSZ
+      end
+    end
+  end
+  return get_standard_domain(extended_domain)
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# function make_domain_connected(domain :: Array{T} where T <: Integer)
+#   if length(size(domain)) == 2
+#     dims = 2
+#   else
+#     dims = 3
+#   end  
+#   
+#   if dims == 2
+#     aux_matrix = Matrix{Integer}(undef, size(domain) .+ (2,2))
+#     aux_matrix = -1
+#     aux_matrix[2:end-1, 2:end-1] = domain
+#     
+#     search_dirs = [(1,0), (-1,0), (0, 1), (0, -1)]
+#     
+#     list_to_process = [(x,y) for x in 1:size(domain[1]), y in 1:size(domain[2])]
+#     while length(list_to_process) > 0
+#       act_idx = rand(1:length(list_to_process))
+#       act_indices = list_to_process[act_idx]
+#       
+#       if !check_point_connection(aux_matrix, aux_matrix[act_indices .+ 1])
+#         pore_to_swap = find_a_place_for_the_point(aux_matrix)
+#         
+#       end
+#     end
+#   end
+#   
+#   if dims == 3
+#     aux_matrix = Array{Integer}(undef, size(domain) .+ (2,2,2))
+#     aux_matrix .= -1
+#     aux_matrix[2:end-1, 2:end-1, 2:end-1] = domain
+#     
+#     search_dirs = [(1,0,0), (-1,0,0), (0, 1,0), (0, -1, 0), (0, 0, 1), (0, 0, -1)]
+#   end
+#   
+# end
