@@ -12,22 +12,30 @@ function generate_random_specification(LSM_ratio, porosity)
 end
 
 # generate random matrix of dimensions 
-function generate_matrix(dimensions::Tuple{T, T} where T <: Integer, porosity::Float64, LSM_ratio::Float64)
-  return rand(
-                          generate_random_specification(LSM_ratio, porosity), 
-                          dimensions...
-         )
+function generate_matrix(dimensions::Tuple{T, T} where T <: Integer, porosity::Float64, LSM_ratio::Float64, hole_prob::Union{Float64, Nothing}=nothing)
+  if typeof(hole_prob) == Nothing
+    return rand(
+                            generate_random_specification(LSM_ratio, porosity), 
+                            dimensions...
+          )
+  else
+    return shoot_pores(dimensions, porosity, LSM_ratio, hole_prob)
+  end
 end
 
-function generate_matrix(dimensions::Tuple{T, T, T} where T <: Integer, porosity::Float64, LSM_ratio::Float64)
-  res = Array{Int64}(undef, dimensions...)
-  for layer in 1:dimensions[3]
-    res[:, :, layer] = rand(
-                          generate_random_specification(LSM_ratio, porosity), 
-                          dimensions[1], dimensions[2]
-                      )
-  end
-  return res
+function generate_matrix(dimensions::Tuple{T, T, T} where T <: Integer, porosity::Float64, LSM_ratio::Float64, hole_prob::Union{Float64, Nothing}=nothing)
+  if typeof(hole_prob) == Nothing
+    res = Array{Int64}(undef, dimensions...)
+    for layer in 1:dimensions[3]
+      res[:, :, layer] = rand(
+                            generate_random_specification(LSM_ratio, porosity), 
+                            dimensions[1], dimensions[2]
+                        )
+    end
+    return res
+  else
+    return shoot_pores(dimensions, porosity, LSM_ratio, hole_prob)
+  end  
 end
 
 function generate_submatrix_to_matrix(matrix, left_upper::Union{Tuple, Array}, right_lower::Union{Tuple, Array}, porosity::Float64, LSM_ratio::Float64)
@@ -385,7 +393,7 @@ function get_body_list(domain)
   end  
 end
 
-function shoot_pores(dims, porosity, LSM_ratio, por_prob)
+function shoot_pores(dims, porosity, LSM_ratio, por_prob; recursion_depth=10)
   domain = Array{Integer}(undef, dims)
   boundary_pore_list = []
   body_list = get_body_list(domain)
@@ -443,7 +451,18 @@ function shoot_pores(dims, porosity, LSM_ratio, por_prob)
       end
     end
   end
-  return get_standard_domain(extended_domain)
+  
+  the_domain = get_standard_domain(extended_domain)
+  if check_material_connection(the_domain)
+    return the_domain
+  else
+    if recursion_depth > 0
+      return shoot_pores(dims, porosity, LSM_ratio, por_prob, recursion_depth=recursion_depth-1)
+    else
+      println("ERROR: recursion_depth = 0 ... no trials left ... material_connectivity is not ensured")
+      return -1
+    end
+  end
 end
 
 

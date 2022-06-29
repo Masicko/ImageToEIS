@@ -80,6 +80,15 @@ function homogenous_matrix(par_study_prms::Dict)
   )
 end
 
+function pore_shooting_matrix(par_study_prms::Dict)
+  return generate_matrix(
+            par_study_prms["dimensions"],
+            par_study_prms["porosity"],
+            par_study_prms["LSM_ratio"],
+            par_study_prms["pore_prob"]
+  )
+end
+
 function three_column_domain_matrix(p::Dict)
   return generate_matrix(
     three_column_domain_template(p["LSM_ratio1"], p["LSM_ratio2"], p["LSM_ratio3"], 
