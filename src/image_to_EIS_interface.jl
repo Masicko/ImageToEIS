@@ -132,8 +132,19 @@ function image_to_EIS(
         change_extension_to(export_z_file, input_path[end-2 : end]),
         force=true
       )
+    elseif save_also_image == "!asZfile"
+      matrix_to_file(
+        change_extension_to(export_z_file, "png"),
+        material_matrix
+      )
     elseif save_also_image != "" && length(size(material_matrix)) == 2 
       matrix_to_file(save_also_image, material_matrix)
+    end
+  elseif export_z_file == ""
+    if (save_also_image != "") && (save_also_image[1] != '!')      
+      matrix_to_file(save_also_image, material_matrix)
+    else
+      println("WARNING: be careful, you are trying to save image with a wrong name!")
     end
   end
   

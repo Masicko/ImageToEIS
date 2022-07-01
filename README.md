@@ -141,8 +141,10 @@ Practically useful keyword parameters are
   - if `= "some_file.z"` : exports to this file
   - if `= "!use_file_name"` : this option is valid only when the function `image_to_EIS` was **called with a path of image**, e. g. "images/geometry.png"
   and it means that z_file will have a form "images/geometry.z", i. e. changes only the extension to ".z"
-- `save_also_image = false`
-  - if `= true` : if `export_z_file != ""` and `image_to_EIS` was **called with a path of image**, than the input image is copied with a name of `export_z_file` but with the extension of *input_image*
+- `save_also_image = ""
+  - if "example.png" : the image will be saved with this name
+  - if `!asZfile` : if `export_z_file != ""` and than the input image is copied with a name of `export_z_file` but with the extension ".png"
+  - if `!input` : if `image_to_EIS` was **called with a path of image**
 - `store_R_RC` : turns on the evaluation of R_RC element from two points of computed impedance and append the output to a specified file
   - if `= ""` : means *do nothing* (which is default)
   - if `= "storage.txt"` : append a line formated as <dateTtime> tab <input_file_name> tab <R_ohm> tab <R_pol> tab <C_pol> . If the function was called with a matrix (not an path to file), `"<matrix_input>"` is written instead of <input_file_name>.
@@ -160,12 +162,12 @@ Advanced keyword parameters are
 ### Real Example
 
 ```julialang
-image_to_EIS(   [1 1 1; 0 1 2], 
+image_to_EIS(   [1 0 1; 0 1 2], 
                 ["R_YSZ" => 73],
                 #
                 export_z_file="test.z", 
                 return_R_RC=true,
-                save_also_image=true,
+                save_also_image="!asZfile",
                 store_R_RC = ""
                 )
 ```
