@@ -141,10 +141,12 @@ function image_to_EIS(
       matrix_to_file(save_also_image, material_matrix)
     end
   elseif export_z_file == ""
-    if (save_also_image != "") && (save_also_image[1] != '!')      
-      matrix_to_file(save_also_image, material_matrix)
-    else
-      println("WARNING: be careful, you are trying to save image with a wrong name!")
+    if (save_also_image != "")
+      if (save_also_image[1] != '!')   
+        matrix_to_file(save_also_image, material_matrix)
+      else
+        println("WARNING: be careful, you are trying to save image with a wrong name!")
+      end
     end
   end
   

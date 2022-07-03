@@ -12,29 +12,49 @@ function generate_random_specification(LSM_ratio, porosity)
 end
 
 # generate random matrix of dimensions 
-function generate_matrix(dimensions::Tuple{T, T} where T <: Integer, porosity::Float64, LSM_ratio::Float64, hole_prob::Union{Float64, Nothing}=nothing)
-  if typeof(hole_prob) == Nothing
-    return rand(
+function generate_matrix(dimensions::Tuple{T, T} where T <: Integer, porosity::Float64, LSM_ratio::Float64, pore_prob::Union{Float64, Nothing}=nothing; recursion_depth=1000)
+  if typeof(pore_prob) == Nothing
+    the_domain = rand(
                             generate_random_specification(LSM_ratio, porosity), 
                             dimensions...
           )
+    if check_material_connection(the_domain)
+      return the_domain
+    else
+      if recursion_depth > 0        
+        return generate_matrix(dimensions, porosity, LSM_ratio, pore_prob, recursion_depth=recursion_depth-1)
+      else
+        println("ERROR: recursion_depth = 0 ... no trials left ... material_connectivity is not ensured")
+        return -1
+      end
+    end
   else
-    return shoot_pores(dimensions, porosity, LSM_ratio, hole_prob)
+    return shoot_pores(dimensions, porosity, LSM_ratio, pore_prob)
   end
 end
 
-function generate_matrix(dimensions::Tuple{T, T, T} where T <: Integer, porosity::Float64, LSM_ratio::Float64, hole_prob::Union{Float64, Nothing}=nothing)
-  if typeof(hole_prob) == Nothing
-    res = Array{Int64}(undef, dimensions...)
+function generate_matrix(dimensions::Tuple{T, T, T} where T <: Integer, porosity::Float64, LSM_ratio::Float64, pore_prob::Union{Float64, Nothing}=nothing; recursion_depth=1000)
+  if typeof(pore_prob) == Nothing
+    the_domain = Array{Int64}(undef, dimensions...)
     for layer in 1:dimensions[3]
-      res[:, :, layer] = rand(
+      the_domain[:, :, layer] = rand(
                             generate_random_specification(LSM_ratio, porosity), 
                             dimensions[1], dimensions[2]
                         )
     end
-    return res
+    if check_material_connection(the_domain)
+      return the_domain
+    else
+      if recursion_depth > 0        
+        return generate_matrix(dimensions, porosity, LSM_ratio, pore_prob, recursion_depth=recursion_depth-1)
+      else
+        println("ERROR: recursion_depth = 0 ... no trials left ... material_connectivity is not ensured")
+        return -1
+      end
+    end    
+    return the_domain
   else
-    return shoot_pores(dimensions, porosity, LSM_ratio, hole_prob)
+    return shoot_pores(dimensions, porosity, LSM_ratio, pore_prob)
   end  
 end
 
@@ -393,7 +413,7 @@ function get_body_list(domain)
   end  
 end
 
-function shoot_pores(dims, porosity, LSM_ratio, por_prob; recursion_depth=10)
+function shoot_pores(dims, porosity, LSM_ratio, pore_prob; recursion_depth=10)
   domain = Array{Integer}(undef, dims)
   boundary_pore_list = []
   body_list = get_body_list(domain)
@@ -407,7 +427,7 @@ function shoot_pores(dims, porosity, LSM_ratio, por_prob; recursion_depth=10)
   
   for i in 1:pix_por        
     mother_item_idx = nothing
-    if (rand() <= por_prob) && (length(boundary_pore_list) > 0)        
+    if (rand() <= pore_prob) && (length(boundary_pore_list) > 0)        
         mother_item_idx = rand(1:length(boundary_pore_list))        
         swapping_item_indices = get_indicies_of_random_neighbour(extended_domain, boundary_pore_list[mother_item_idx])        
         swapping_item_idx = findall(x -> x == swapping_item_indices, body_list)[1]
@@ -457,7 +477,7 @@ function shoot_pores(dims, porosity, LSM_ratio, por_prob; recursion_depth=10)
     return the_domain
   else
     if recursion_depth > 0
-      return shoot_pores(dims, porosity, LSM_ratio, por_prob, recursion_depth=recursion_depth-1)
+      return shoot_pores(dims, porosity, LSM_ratio, pore_prob, recursion_depth=recursion_depth-1)
     else
       println("ERROR: recursion_depth = 0 ... no trials left ... material_connectivity is not ensured")
       return -1
