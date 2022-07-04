@@ -628,23 +628,27 @@ function show_plots(x_axis, other_parameters, dir="snehurka/par_study/";
       @show sub_df
       plot_par_study_results(
         sub_df[!, x_axis], 
-        apply_func.(sub_df[!, :R_mean]), 
-        apply_func.(sub_df[!, :R_pol_mean]),  
-        apply_func.(sub_df[!, :C_pol_mean]),        
+        sub_df[!, :R_mean], 
+        sub_df[!, :R_pol_mean],
+        sub_df[!, :C_pol_mean],
         label=legend_entry,
         x_axis_label=x_axis,
-        title="Mean"
+        title="Mean",
+        apply_func=apply_func,
+        func_name=""
       )
       if show_var
         plot_par_study_results(
           sub_df[!, x_axis], 
-          apply_func.(sub_df[!, :R_var]), 
-          apply_func.(sub_df[!, :R_pol_var]),  
-          apply_func.(sub_df[!, :C_pol_var]),        
+          sub_df[!, :R_mean], 
+          sub_df[!, :R_pol_mean],
+          sub_df[!, :C_pol_mean],
           label=legend_entry,
-          x_axis_label=x_axis,
+          x_axis_label=x_axis,          
           fig_num=6,
-          title="Var"
+          title="Var",
+          apply_func=apply_func,
+          func_name=""
         )
       end
     end
@@ -654,35 +658,42 @@ end
 
 
 
-function plot_par_study_results(x, R, Rp, Cp; label="", x_axis_label, fig_num=5, title="")
+function plot_par_study_results(x, R, Rp, Cp; label="", x_axis_label, fig_num=5, title="", apply_func= x -> x, func_name="")
   figure(fig_num)
   if length(title) > 0
     suptitle(title)
   end
+  if func_name!=""
+    ylabel_prefix = func_name*" "
+  else
+    ylabel_prefix = ""
+  end
   
   subplot(221)
   @show R
-  plot(x, [sum(R[n])/length(R[n]) for n in 1:length(R)], label=label, "-x")
+  plot(x, apply_func.([sum(R[n])/length(R[n]) for n in 1:length(R)]), label=label, "-x")
   xlabel(x_axis_label)
-  ylabel("R_ohm")
+  ylabel(ylabel_prefix*"R_ohm")
   legend()
   
   subplot(223)    
-  plot(x, [sum(Rp[n]/length(Rp[n])) for n in 1:length(R)], label=label, "-x")
+  plot(x, apply_func.([sum(Rp[n]/length(Rp[n])) for n in 1:length(R)]), label=label, "-x")
   xlabel(x_axis_label)
-  ylabel("R_pol")
+  ylabel(ylabel_prefix*"R_pol")
   legend()
   
   subplot(222)  
-  plot(x, [sum(Cp[n]/length(Cp[n])) for n in 1:length(R)], label=label, "-x")
+  plot(x, apply_func.([sum(Cp[n]/length(Cp[n])) for n in 1:length(R)]), label=label, "-x")
   xlabel(x_axis_label)
-  ylabel("C_pol")
+  ylabel(ylabel_prefix*"C_pol")
   legend()
-  
+    
   subplot(224)  
-  plot(x, [sum(R[n])/length(R[n]) for n in 1:length(R)] .+ [sum(Rp[n]/length(Rp[n])) for n in 1:length(R)], label=label, "-x")
+  plot(x, apply_func.([
+      sum(R[n])/length(R[n]) + sum(Rp[n]/length(Rp[n]))
+    for n in 1:length(R)]) , label=label, "-x")
   xlabel(x_axis_label)
-  ylabel("R_tot")
+  ylabel(ylabel_prefix*"R_tot")
   legend()
 end
 
