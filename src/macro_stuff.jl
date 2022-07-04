@@ -606,9 +606,10 @@ end
 function show_plots(x_axis, other_parameters, dir="snehurka/par_study/"; 
         specific_symbol="", 
         apply_func= x -> x, 
+        func_name="",
         throw_exception=true,
         plot_bool=true,
-        show_var=false
+        show_var=false,        
         )
   collected_df = collect_df_files_in_folder(dir)
   #@show collected_df
@@ -635,7 +636,7 @@ function show_plots(x_axis, other_parameters, dir="snehurka/par_study/";
         x_axis_label=x_axis,
         title="Mean",
         apply_func=apply_func,
-        func_name=""
+        func_name=func_name
       )
       if show_var
         plot_par_study_results(
@@ -648,7 +649,7 @@ function show_plots(x_axis, other_parameters, dir="snehurka/par_study/";
           fig_num=6,
           title="Var",
           apply_func=apply_func,
-          func_name=""
+          func_name=func_name
         )
       end
     end

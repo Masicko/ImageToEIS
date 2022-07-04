@@ -12,13 +12,13 @@ function generate_random_specification(LSM_ratio, porosity)
 end
 
 # generate random matrix of dimensions 
-function generate_matrix(dimensions::Tuple{T, T} where T <: Integer, porosity::Float64, LSM_ratio::Float64, pore_prob::Union{Float64, Nothing}=nothing; recursion_depth=1000, dont_check_connectivity=false)
+function generate_matrix(dimensions::Tuple{T, T} where T <: Integer, porosity::Float64, LSM_ratio::Float64, pore_prob::Union{Float64, Nothing}=nothing; recursion_depth=1000, check_connectivity=true)
   if typeof(pore_prob) == Nothing
     the_domain = rand(
                             generate_random_specification(LSM_ratio, porosity), 
                             dimensions...
           )
-    if check_material_connection(the_domain) || dont_check_connectivity
+    if !check_connectivity || check_material_connection(the_domain)
       return the_domain
     else
       if recursion_depth > 0        
@@ -33,7 +33,7 @@ function generate_matrix(dimensions::Tuple{T, T} where T <: Integer, porosity::F
   end
 end
 
-function generate_matrix(dimensions::Tuple{T, T, T} where T <: Integer, porosity::Float64, LSM_ratio::Float64, pore_prob::Union{Float64, Nothing}=nothing; recursion_depth=1000, dont_check_connectivity=false)
+function generate_matrix(dimensions::Tuple{T, T, T} where T <: Integer, porosity::Float64, LSM_ratio::Float64, pore_prob::Union{Float64, Nothing}=nothing; recursion_depth=1000, check_connectivity=true)
   if typeof(pore_prob) == Nothing
     the_domain = Array{Int64}(undef, dimensions...)
     for layer in 1:dimensions[3]
@@ -42,7 +42,7 @@ function generate_matrix(dimensions::Tuple{T, T, T} where T <: Integer, porosity
                             dimensions[1], dimensions[2]
                         )
     end
-    if check_material_connection(the_domain)
+    if !check_connectivity || check_material_connection(the_domain)
       return the_domain
     else
       if recursion_depth > 0        
