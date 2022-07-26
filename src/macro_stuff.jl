@@ -641,9 +641,9 @@ function show_plots(x_axis, other_parameters, dir="snehurka/par_study/";
       if show_var
         plot_par_study_results(
           sub_df[!, x_axis], 
-          sub_df[!, :R_mean], 
-          sub_df[!, :R_pol_mean],
-          sub_df[!, :C_pol_mean],
+          sub_df[!, :R_var], 
+          sub_df[!, :R_pol_var],
+          sub_df[!, :C_pol_var],
           label=legend_entry,
           x_axis_label=x_axis,          
           fig_num=6,
