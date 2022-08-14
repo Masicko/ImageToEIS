@@ -242,10 +242,18 @@ function par_study(
     )  
   end
   
-  for_each_prms_in_prms_lists(
-    collect(values(par_study_prms)), 
-    execute_for_specific_values
-  )
+  if haskey(input_prms_dict, "make_node_busy") && input_prms_dict["make_node_busy"] == 1
+    dummy = 0
+    while true
+      println(dummy)
+      dummy += 1
+    end
+  else
+    for_each_prms_in_prms_lists(
+      collect(values(par_study_prms)), 
+      execute_for_specific_values
+    )
+  end
   
   #@show output_data_frame
   if save_to_file != ""
