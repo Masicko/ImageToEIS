@@ -27,7 +27,8 @@ function image_to_EIS(
             prms_pairs = [];
             #            
             f_list="TPE",
-            TPE_f_list = [2.0^n for n in -5 : 0.5 : 15],
+            TPE_f_list_in = [1e-3, 1e6],
+            TPE_f_list_out = [10.0^n for n in (-3 : 0.5 : 7)],
             TPE_warning = true,
             #f_list=[2.0^i for i in -3:10], 
             #            
@@ -51,7 +52,7 @@ function image_to_EIS(
   two_point_extrapolation = false
   if typeof(f_list)==String && (f_list == "two_point_extrapolation" || f_list == "TPE")
     two_point_extrapolation = true
-    f_list = [0.1, 10000]
+    f_list = TPE_f_list_in
   end
   
   extract_R_RC = false  
@@ -99,7 +100,7 @@ function image_to_EIS(
   end
   
   if two_point_extrapolation && extract_R_RC    
-    f_list = TPE_f_list
+    f_list = TPE_f_list_out
     Z_list = get_Z_from_R_RC(f_list, R_ohm, R, C)
     TPE_warning && println("WARNING: TPE (two_point_extrapolation) has been used!")
   end
@@ -115,6 +116,37 @@ function image_to_EIS(
       )
     end
   end
+  
+  
+#   if export_z_file == "!use_file_name"
+#     if input_path != ""      
+#       export_z_file=change_extension_to(input_path, "z")
+#     else
+#       println("ERROR: cannot export_z_file: input_path == \"\"!")
+#     end
+#   end
+#   
+#   if export_z_file != ""
+#     
+#     export_EIS_to_Z_file(export_z_file, f_list, Z_list)
+#         
+#     if save_also_image == "!input" && input_path != ""
+#       cp(
+#         input_path, 
+#         change_extension_to(export_z_file, input_path[end-2 : end]),
+#         force=true
+#       )
+#     elseif save_also_image == "!asZfile"
+#       matrix_to_file(
+#         change_extension_to(export_z_file, "png"),
+#         material_matrix
+#       )
+#     elseif save_also_image != "" && length(size(material_matrix)) == 2 
+#       matrix_to_file(save_also_image, material_matrix)
+#     end
+  
+  
+  
   
   if export_z_file == "!use_file_name"
     if input_path != ""      
