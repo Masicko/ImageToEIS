@@ -153,34 +153,44 @@ function image_to_EIS(
       export_EIS_to_Z_file(change_extension_to(input_path, "z"), f_list, Z_list)
     else
       println("ERROR: cannot export_z_file: input_path == \"\"!")
+      return throw(Exception)
+    end
+    if save_also_image == "!asZfile"
+      println("ERROR: cannot save image, it already exists!")
+      return throw(Exception)
     end
   elseif export_z_file != ""
     
     export_EIS_to_Z_file(export_z_file, f_list, Z_list)
-        
-    if save_also_image == "!input" && input_path != ""
-      cp(
-        input_path, 
-        change_extension_to(export_z_file, input_path[end-2 : end]),
-        force=true
-      )
-    elseif save_also_image == "!asZfile"
-      matrix_to_file(
-        change_extension_to(export_z_file, "png"),
-        material_matrix
-      )
-    elseif save_also_image != "" && length(size(material_matrix)) == 2 
-      matrix_to_file(save_also_image, material_matrix)
-    end
-  elseif export_z_file == ""
-    if (save_also_image != "")
-      if (save_also_image[1] != '!')   
-        matrix_to_file(save_also_image, material_matrix)
+
+    if save_also_image == "!asZfile"
+      if input_path !="" 
+        aux_extension = input_path[end-2 : end]
       else
-        println("WARNING: be careful, you are trying to save image with a wrong name!")
+        aux_extension = "png"
       end
+      matrix_to_file(
+        change_extension_to(export_z_file, aux_extension),
+        material_matrix
+      )    
     end
   end
+  
+  if export_z_file == ""
+    if save_also_image == "!asZfile" 
+      println("ERROR: cannot save image sith Z file name, no Z file name defined!")
+      throw(Exception)
+    end
+  end
+  
+  if (save_also_image != "")
+    if (save_also_image[1] != '!')   
+      matrix_to_file(save_also_image, material_matrix)
+    else
+      println("WARNING: be careful, you are trying to save image with a wrong name!")
+    end
+  end
+  
   
   if extract_R_RC && return_R_RC
     return R_ohm, R, C
