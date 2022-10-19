@@ -12,12 +12,28 @@ function generate_random_specification(LSM_ratio, porosity)
 end
 
 # generate random matrix of dimensions 
-function generate_matrix(dimensions::Tuple{T, T} where T <: Integer, porosity::Float64, LSM_ratio::Float64, pore_prob::Union{Float64, Nothing}=nothing; recursion_depth=1000, check_connectivity=true)
+function generate_matrix(dimensions::Tuple{T, T} where T <: Integer, porosity::Float64, LSM_ratio::Float64, pore_prob::Union{Float64, Nothing}=nothing; recursion_depth=1000, check_connectivity=true, OLD_version=false)
   if typeof(pore_prob) == Nothing
-    the_domain = rand(
-                            generate_random_specification(LSM_ratio, porosity), 
-                            dimensions...
-          )
+    if !OLD_version
+      the_domain = Matrix{Int16}(undef, dimensions)
+      for i in 1:length(the_domain[:])
+        if rand() <= porosity
+          the_domain[i] = i_hole
+        else
+          if rand() <= LSM_ratio
+            the_domain[i] = i_LSM
+          else
+            the_domain[i] = i_YSZ
+          end
+        end
+      end      
+    else
+      the_domain = rand(
+                              generate_random_specification(LSM_ratio, porosity), 
+                              dimensions...
+            )
+    end
+    
     if !check_connectivity || check_material_connection(the_domain)
       return the_domain
     else
@@ -28,20 +44,37 @@ function generate_matrix(dimensions::Tuple{T, T} where T <: Integer, porosity::F
         return -1
       end
     end
+  
   else
     return shoot_pores(dimensions, porosity, LSM_ratio, pore_prob)
   end
 end
 
-function generate_matrix(dimensions::Tuple{T, T, T} where T <: Integer, porosity::Float64, LSM_ratio::Float64, pore_prob::Union{Float64, Nothing}=nothing; recursion_depth=1000, check_connectivity=true)
+function generate_matrix(dimensions::Tuple{T, T, T} where T <: Integer, porosity::Float64, LSM_ratio::Float64, pore_prob::Union{Float64, Nothing}=nothing; recursion_depth=1000, check_connectivity=true, OLD_version=false)
   if typeof(pore_prob) == Nothing
     the_domain = Array{Int64}(undef, dimensions...)
-    for layer in 1:dimensions[3]
-      the_domain[:, :, layer] = rand(
+    if !OLD_version
+      the_domain = Array{Int16}(undef, dimensions)
+      for i in 1:length(the_domain[:])
+        if rand() <= porosity
+          the_domain[i] = i_hole
+        else
+          if rand() <= LSM_ratio
+            the_domain[i] = i_LSM
+          else
+            the_domain[i] = i_YSZ
+          end
+        end
+      end      
+    else
+      for layer in 1:dimensions[3]
+        the_domain[:, :, layer] = rand(
                             generate_random_specification(LSM_ratio, porosity), 
                             dimensions[1], dimensions[2]
                         )
+      end
     end
+    
     if !check_connectivity || check_material_connection(the_domain)
       return the_domain
     else
@@ -219,7 +252,12 @@ function search_dirs(domain::Array{T} where T<: Integer)
 end
 
 
-function check_material_connection(domain::Array{T} where T <: Integer)
+
+
+function check_material_connection(domain::Array{T} where T <: Integer; return_alone_percentage=false)
+  material_sign = 8
+  end_sign = 6
+  
   if length(size(domain)) == 2
     dims = 2
   else
@@ -227,8 +265,9 @@ function check_material_connection(domain::Array{T} where T <: Integer)
   end  
   
   if dims == 2
-    aux_matrix = Matrix{Integer}(undef, size(domain) .+ (2,1))
+    aux_matrix = Matrix{Integer}(undef, size(domain) .+ (2,2))
     aux_matrix .= 1 
+    aux_matrix[:, end] .= end_sign
     aux_matrix[:, 1] .= 0
     #
     aux_matrix[1, :] .= 0
@@ -238,9 +277,11 @@ function check_material_connection(domain::Array{T} where T <: Integer)
   end
   
   if dims == 3
-    aux_matrix = Array{Integer}(undef, size(domain) .+ (2,1,2))
+    aux_matrix = Array{Integer}(undef, size(domain) .+ (2,2,2))
   
     aux_matrix .= 1 
+    aux_matrix[:, end, :] .= end_sign
+    
     aux_matrix[:, 1, :] .= 0
     #
     aux_matrix[1, :, :] .= 0
@@ -257,14 +298,14 @@ function check_material_connection(domain::Array{T} where T <: Integer)
   
   if dims==2
     function search_around_this(x,y)
-      if y==size(aux_matrix)[2]
+      if aux_matrix[x,y] == end_sign        
         is_connected=true
         return true
       else
         if (aux_matrix[x,y] == 1) 
           #@show x,y
           if (domain[x-1, y-1] in i_material_list)          
-            aux_matrix[x,y] = 2          
+            aux_matrix[x,y] = material_sign         
             for dir in search_dirs
               search_around_this(((x,y) .+ dir)...)
             end
@@ -282,13 +323,13 @@ function check_material_connection(domain::Array{T} where T <: Integer)
   else
     
     function search_around_this_3D(x,y,z)      
-      if y==size(aux_matrix)[2]
+      if aux_matrix[x,y,z] == end_sign        
         is_connected=true
         return true
       else
         if (aux_matrix[x,y,z] == 1)           
           if (domain[x-1, y-1, z-1] in i_material_list)                      
-            aux_matrix[x,y,z] = 2          
+            aux_matrix[x,y,z] = material_sign         
             for dir in search_dirs              
               search_around_this_3D(((x,y,z) .+ dir)...)
             end
@@ -304,9 +345,29 @@ function check_material_connection(domain::Array{T} where T <: Integer)
     end    
   end
   
-  return is_connected
+  
+  if return_alone_percentage == true
+    if dims == 2
+      sub_aux_matrix = aux_matrix[2:end-1, 2:end-1]
+    elseif dims == 3
+      sub_aux_matrix = aux_matrix[2:end-1, 2:end-1, 2:end-1]
+    end
+    #
+    material_pixels = 0
+    alone_pixels = 0
+    for i in 1:length(domain[:])      
+      if domain[i] in i_material_list
+        material_pixels += 1
+        if sub_aux_matrix[i] != material_sign
+          alone_pixels += 1    
+        end
+      end
+    end    
+    return alone_pixels/material_pixels
+  else
+    return is_connected
+  end
 end
-
 
 
 
@@ -353,11 +414,11 @@ function typical_use_shoot_pores()
 end
 
 
+
+
 function test_shoot_pores()
   return shoot_pores((10, 10), 0.5, 0.4, 0.1)
 end
-
-
 
 
 function ext_correction(domain)

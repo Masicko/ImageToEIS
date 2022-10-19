@@ -600,7 +600,9 @@ function get_grouped_processed_df(collected_df, x_axis, other_parameters; specif
 #   if show_var
     df_to_plot = combine(gdf, 
       ["R", "R_pol", "C_pol"] .=> mean, 
-      ["R", "R_pol", "C_pol"] .=> var    
+      ["R", "R_pol", "C_pol"] .=> var,
+      ["R"] .=> maximum,
+      ["R"] .=> minimum
     )
 #   else
 #     df_to_plot = combine(gdf, 
