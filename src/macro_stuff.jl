@@ -71,12 +71,10 @@ end
 
 
 function homogenous_matrix(par_study_prms::Dict)
-  return rand(
-            generate_random_specification(
-              par_study_prms["LSM_ratio"], 
-              par_study_prms["porosity"]
-            ), 
-            par_study_prms["dimensions"]...
+  return generate_matrix(
+            par_study_prms["dimensions"],
+            par_study_prms["porosity"],
+            par_study_prms["LSM_ratio"]
   )
 end
 

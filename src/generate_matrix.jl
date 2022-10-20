@@ -1,38 +1,31 @@
-function generate_random_specification(LSM_ratio, porosity)
-  v = Array{Int16}(undef, 100)    
-  
-    
-  hole_length = Int32(round(porosity*100))
-  LSM_length = Int32(round((1 - porosity)*LSM_ratio*100))        
-  
-  v .= i_YSZ
-  v[1 : hole_length] .= i_hole
-  v[hole_length + 1 : hole_length + LSM_length] .= i_LSM
-  return v
-end
+# function generate_random_specification(LSM_ratio, porosity)
+#   v = Array{Int16}(undef, 100)    
+#   
+#     
+#   hole_length = Int32(round(porosity*100))
+#   LSM_length = Int32(round((1 - porosity)*LSM_ratio*100))        
+#   
+#   v .= i_YSZ
+#   v[1 : hole_length] .= i_hole
+#   v[hole_length + 1 : hole_length + LSM_length] .= i_LSM
+#   return v
+# end
 
 # generate random matrix of dimensions 
-function generate_matrix(dimensions::Tuple{T, T} where T <: Integer, porosity::Float64, LSM_ratio::Float64, pore_prob::Union{Float64, Nothing}=nothing; recursion_depth=1000, check_connectivity=true, OLD_version=false)
+function generate_matrix(dimensions::Tuple{T, T} where T <: Integer, porosity::Float64, LSM_ratio::Float64, pore_prob::Union{Float64, Nothing}=nothing; recursion_depth=1000000, check_connectivity=true)
   if typeof(pore_prob) == Nothing
-    if !OLD_version
-      the_domain = Matrix{Int16}(undef, dimensions)
-      for i in 1:length(the_domain[:])
-        if rand() <= porosity
-          the_domain[i] = i_hole
+    the_domain = Matrix{Int16}(undef, dimensions)
+    for i in 1:length(the_domain[:])
+      if rand() <= porosity
+        the_domain[i] = i_hole
+      else
+        if rand() <= LSM_ratio
+          the_domain[i] = i_LSM
         else
-          if rand() <= LSM_ratio
-            the_domain[i] = i_LSM
-          else
-            the_domain[i] = i_YSZ
-          end
+          the_domain[i] = i_YSZ
         end
-      end      
-    else
-      the_domain = rand(
-                              generate_random_specification(LSM_ratio, porosity), 
-                              dimensions...
-            )
-    end
+      end
+    end      
     
     if !check_connectivity || check_material_connection(the_domain)
       return the_domain
@@ -50,30 +43,21 @@ function generate_matrix(dimensions::Tuple{T, T} where T <: Integer, porosity::F
   end
 end
 
-function generate_matrix(dimensions::Tuple{T, T, T} where T <: Integer, porosity::Float64, LSM_ratio::Float64, pore_prob::Union{Float64, Nothing}=nothing; recursion_depth=1000, check_connectivity=true, OLD_version=false)
+function generate_matrix(dimensions::Tuple{T, T, T} where T <: Integer, porosity::Float64, LSM_ratio::Float64, pore_prob::Union{Float64, Nothing}=nothing; recursion_depth=1000000, check_connectivity=true)
   if typeof(pore_prob) == Nothing
-    the_domain = Array{Int64}(undef, dimensions...)
-    if !OLD_version
-      the_domain = Array{Int16}(undef, dimensions)
-      for i in 1:length(the_domain[:])
-        if rand() <= porosity
-          the_domain[i] = i_hole
+    
+    the_domain = Array{Int16}(undef, dimensions)
+    for i in 1:length(the_domain[:])
+      if rand() <= porosity
+        the_domain[i] = i_hole
+      else
+        if rand() <= LSM_ratio
+          the_domain[i] = i_LSM
         else
-          if rand() <= LSM_ratio
-            the_domain[i] = i_LSM
-          else
-            the_domain[i] = i_YSZ
-          end
+          the_domain[i] = i_YSZ
         end
-      end      
-    else
-      for layer in 1:dimensions[3]
-        the_domain[:, :, layer] = rand(
-                            generate_random_specification(LSM_ratio, porosity), 
-                            dimensions[1], dimensions[2]
-                        )
       end
-    end
+    end        
     
     if !check_connectivity || check_material_connection(the_domain)
       return the_domain
