@@ -280,52 +280,62 @@ function check_material_connection(domain::Array{T} where T <: Integer; return_a
   is_connected=false  
   
   
-  if dims==2
-    function search_around_this(x,y)
-      if aux_matrix[x,y] == end_sign        
-        is_connected=true
-        return true
-      else
-        if (aux_matrix[x,y] == 1) 
-          #@show x,y
-          if (domain[x-1, y-1] in i_material_list)          
-            aux_matrix[x,y] = material_sign         
-            for dir in search_dirs
-              search_around_this(((x,y) .+ dir)...)
+  if dims==2    
+    for row in 1:size(domain)[1]
+      list_to_process = [(row +1, 2)]
+      
+      while length(list_to_process) > 0
+        x, y = list_to_process[end]
+        deleteat!(list_to_process, length(list_to_process))
+        
+        if aux_matrix[x,y] == end_sign        
+          is_connected=true
+          return true
+        else
+          if (aux_matrix[x,y] == 1)
+            #@show x,y
+            if (domain[x-1, y-1] in i_material_list)          
+              aux_matrix[x,y] = material_sign         
+              for dir in search_dirs
+                push!(list_to_process, (x,y) .+ dir)
+                #search_around_this(((x,y) .+ dir)...)
+              end
+            else
+              aux_matrix[x,y] = 0
             end
-          else
-            aux_matrix[x,y] = 0
           end
         end
-      end
-    end
-    for row in 1:size(domain)[1]
-      search_around_this(row+1,2)
+      end            
     end
   
   
   else
-    
-    function search_around_this_3D(x,y,z)      
-      if aux_matrix[x,y,z] == end_sign        
-        is_connected=true
-        return true
-      else
-        if (aux_matrix[x,y,z] == 1)           
-          if (domain[x-1, y-1, z-1] in i_material_list)                      
-            aux_matrix[x,y,z] = material_sign         
-            for dir in search_dirs              
-              search_around_this_3D(((x,y,z) .+ dir)...)
-            end
-          else
-            aux_matrix[x,y, z] = 0
-          end        
-        end
-      end
-    end
+
     
     for row in 1:size(domain)[1], layer in 1:size(domain)[3]
-      search_around_this_3D(row+1, 2, layer+1)
+      list_to_process = [(row +1, 2, layer+1)]
+      
+      while length(list_to_process) > 0
+        x, y, z = list_to_process[end]
+        deleteat!(list_to_process, length(list_to_process))
+        
+        if aux_matrix[x,y,z] == end_sign        
+          is_connected=true
+          return true
+        else
+          if (aux_matrix[x,y,z] == 1)           
+            if (domain[x-1, y-1, z-1] in i_material_list)                      
+              aux_matrix[x,y,z] = material_sign         
+              for dir in search_dirs        
+                push!(list_to_process, (x,y,z) .+ dir)                
+              end
+            else
+              aux_matrix[x,y, z] = 0
+            end        
+          end
+        end
+      end
+      
     end    
   end
   
