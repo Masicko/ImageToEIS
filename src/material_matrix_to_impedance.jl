@@ -25,7 +25,8 @@ function material_matrix_to_impedance(
             #
             complex_type=ComplexF64,
             iterative_solver = false,
-            verbose = false
+            verbose = false,
+            return_only_linsys = false
             )
            
   if verbose
@@ -52,12 +53,14 @@ function material_matrix_to_impedance(
       
       A_eval = sparse(sp_input[1], sp_input[2], sp_input_vals_eval)
       
-      #return A_eval, b
+      if return_only_linsys
+        return A_eval, b
+      end
       @time if iterative_solver       
         x = bicgstabl(A_eval, b)
       else                
         x = A_eval \ b
-      end      
+      end
       push!(Z_list, 1/x[1])
     end    
   else
@@ -84,7 +87,9 @@ function material_matrix_to_impedance(
       
       A_eval = sparse(sp_input[1], sp_input[2], sp_input_vals_eval)
       
-      #return A_eval, b
+      if return_only_linsys
+        return A_eval, b
+      end
       if iterative_solver       
         x = bicgstabl(A_eval, b)
       else                
