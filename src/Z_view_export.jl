@@ -18,6 +18,8 @@ function export_EIS_to_Z_file(path, f_range, Z_range)
   des_f_range, des_Z_range = get_frequency_descendent!(f_range, Z_range)
   
   src_dir = @__DIR__  
+  mkpath(dirname(path))
+  
   open(path, "w") do f
     open(src_dir*"/Z_view_template.txt", "r") do template            
       for line in eachline(template)

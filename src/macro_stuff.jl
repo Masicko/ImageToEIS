@@ -432,16 +432,10 @@ function template_specific_three_domain()
   end
 end
 
-
-function construct_explicit_par_study_dict(par_study_prms_dict, parameter_dependency)
-  
-end
-
 function run_par_study(;shell_command="echo",
                         script_file="run_EX3_ysz_fitting_ImageToEIS.jl",
                         mode="go!", direct=false,
                         par_study_prms_dict::Dict,
-                        paramter_dependency::Expr=:(),
                         scripted_prms_names::Array,
                         save_to_file_prefix = "default_"
                       )

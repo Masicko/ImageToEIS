@@ -65,13 +65,13 @@ function file_to_matrix(path="src/geometry.png")
   return m
 end
 
-function matrix_to_file(path, matrix)
+function matrix_to_file(path, matrix, colors=((1,1,0), (0,0,0)))
   save(path, map(x -> if     x == i_hole
                    RGB(1, 1, 1)
                 elseif x == i_YSZ
-                   RGB(1, 1, 0)
+                   RGB(colors[1]...)
                 elseif x == i_LSM
-                   RGB(0, 0, 0)
+                   RGB(colors[2]...)
                 end, matrix)
   )
   return
