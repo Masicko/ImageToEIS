@@ -52,6 +52,23 @@ The each impedance *Z* is specified using the information about starting materia
 
 The factor 1/2 is there so that the total resistance through the whole (e. g.) YSZ particle is *R_YSZ*.
 
+### System of equations
+Linear system contains rows encoding Kirchhoff`s laws. First group of rows belongs to the balance of electric current at each vertex, i.e.
+
+$$
+\sum_{k=1}^{K} I_{ik} = 0, \quad \textrm{for} \ \ i \in 1, 2, ... N,
+$$
+where $N$ is number of all vertices and $I_{ik}$ describes an electric current flowing from vertex $i$ to its neighbouring vertex $k$. Therefore $K = 4$ for 2D case and $K = 6$ for 3D case. The remaining rows of linear system belong to voltage drop for every relevant path through the system (from the left electrode to the right one). Number of relevant paths is chosen such that we obtan a regular square matrix for the system. Suppose we have a path 
+$$
+P = \left( p_l \right)_{l=1}^L
+$$
+represented as a sequence of vertices IDs with the length of $L$. The Kirchhoff`s voltage law than reads
+$$
+\sum_{l=1}^{L-1} Z(p_l, p_{l+1}) = U, \quad \textrm{for all relevant paths} \ P,
+$$
+where $Z(x,y)$ is an impedance of electrical elements between vetices $x$ and $y$ and $U$ is a total voltage applied on the electrodes.
+
+
 ## Installation
 The package can be then installed via 
 ```julialang
@@ -162,6 +179,19 @@ Advanced keyword parameters are
   - if `= false` : the system of equations is solved by a direct solver
   - if `= true` : the system is solved by iterative solver using Biconjugate gradient stabilized method
 
+#### Lower level API 
+A user can directly access the computational core using function `material_matrix_to_impedance()` which accepts arguments these non-keyword arguments
+
+- `material_matrix`
+- `physical_parameters`
+
+and keyword arguments
+
+- `f_list`
+- `complex_type`
+- `iterative_solver`
+- `verbose` : if `true`, every demanding computation step is measured using a macro `@time`
+- `return_only_linsys = true` : the linear system of equations is constructed and returned
 
 ### Real Example
 
