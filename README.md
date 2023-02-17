@@ -191,7 +191,7 @@ and keyword arguments
 - `complex_type`
 - `iterative_solver`
 - `verbose` : if `true`, every demanding computation step is measured using a macro `@time`
-- `return_only_linsys = true` : the linear system of equations is constructed and returned
+- `return_only_linsys` : if `true` : the linear system of equations is constructed and returned as a tuple $(A, b)$ - matrix $A$ and right-hand-side $b$. The system is not solved.
 
 ### Real Example
 
