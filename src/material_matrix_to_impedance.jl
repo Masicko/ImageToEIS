@@ -1,11 +1,10 @@
-function evaluate_matrix_for_w!(eval, template, w)
+function evaluate_list_for_w!(eval, template, w)
   for i in 1:length(template)    
     if typeof(template[i]) <: Function
       eval[i] = template[i](w)
     end
   end
 end
-
 
 function get_prms_from_pairs(pairs)
   p = parameters()
@@ -14,8 +13,6 @@ function get_prms_from_pairs(pairs)
   end
   return p
 end
-
-
 
 function material_matrix_to_impedance(
             material_matrix::Array = [1 1 0 1; 0 1 0 1; 0 1 0 1; 0 1 0 1],            
@@ -35,7 +32,7 @@ function material_matrix_to_impedance(
   
     nz_el_count = length(sp_input[3])
     sp_input_vals_eval = Array{complex_type}(undef, nz_el_count)            
-      
+    b_eval = Array{complex_type}(undef, length(b_real))
     
     Z_list = []
     
@@ -45,23 +42,29 @@ function material_matrix_to_impedance(
       end  
     end
     
-    
-    b = convert.(complex_type, b_real)
+    @time for i in 1:length(b_real)
+      if !(typeof(b_real[i]) <: Function)
+        b_eval[i] = b_real[i]      
+      end       
+    end
+
     for f in f_list
       verbose && @show f        
-      @time evaluate_matrix_for_w!(sp_input_vals_eval, sp_input[3], 2*pi*f) 
+      @time evaluate_list_for_w!(sp_input_vals_eval, sp_input[3], 2*pi*f) 
+      @time evaluate_list_for_w!(b_eval, b_real, 2*pi*f)
       
       A_eval = sparse(sp_input[1], sp_input[2], sp_input_vals_eval)
       
       if return_only_linsys
-        return A_eval, b
+        return A_eval, b_eval
       end
       @time if iterative_solver       
-        x = bicgstabl(A_eval, b)
+        x = bicgstabl(A_eval, b_eval)
       else                
-        x = A_eval \ b
+        x = A_eval \ b_eval
       end
-      push!(Z_list, 1/x[1])
+
+      push!(Z_list, -x[1])
     end    
   else
     params = get_prms_from_pairs(prms_pairs)
@@ -90,9 +93,9 @@ function material_matrix_to_impedance(
       if return_only_linsys
         return A_eval, b
       end
-      if iterative_solver       
+      if iterative_solver
         x = bicgstabl(A_eval, b)
-      else                
+      else
         x = A_eval \ b
       end      
       push!(Z_list, 1/x[1])
