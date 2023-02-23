@@ -109,12 +109,10 @@ max_lin_idx(m,n,s) =  if s==1
 
 
 
-function add_value_to_matrix_row(matrix_header, equation_row, previous_id, next_id, value, dims)
-    lin_idx = aux_matrix_connectivity_entries_to_lin_idx(previous_id, next_id, dims...)   
+function add_value_to_matrix_row(matrix_header, equation_row, unknown_id, value)
+    push!(matrix_header, (unknown_id, (unknown_id)))
     
-    push!(matrix_header, (lin_idx, (previous_id, next_id)))
-    
-    push!(equation_row, (lin_idx, value))
+    push!(equation_row, (unknown_id, value))
 end
 
 
@@ -200,16 +198,33 @@ function add_row_to_sparse_input!(sparse_input,
   end
 end
 
-function add_equation_I_row(pos, auxilary_A, dims, matrix_header, sys_row_idx, sparse_input, RHS)
+
+
+function add_equation_I_row(pos, Z_vector, auxilary_A, dims, matrix_header, sys_row_idx, sparse_input, RHS)
   new_row = []
   act_id = auxilary_A[pos .+ 1 ...]               
   #
-  for node_id in previous(pos..., auxilary_A)                
-      add_value_to_matrix_row(matrix_header, new_row, node_id, act_id, -1, dims)
+  Z_sum = 0 + 0*im
+  for node_id in previous(pos..., auxilary_A)
+    minus_one_over_Z_ji = w -> -1/(Z_vector[aux_matrix_connectivity_entries_to_lin_idx(node_id, act_id, dims...)](w))
+    f(w) = deepcopy(Z_sum)(w)
+    Z_sum = w -> f(w) + minus_one_over_Z_ji(w)
+    add_value_to_matrix_row(matrix_header, new_row, 
+                            node_id, 
+                            minus_one_over_Z_ji)
   end
-  for node_id in next(pos..., auxilary_A)        
-      add_value_to_matrix_row(matrix_header, new_row, act_id, node_id, 1, dims)
+  for node_id in next(pos..., auxilary_A)    
+    one_over_Z_ij = w -> 1/(Z_vector[aux_matrix_connectivity_entries_to_lin_idx(act_id, node_id, dims...)](w))
+    f(w) = deepcopy(Z_sum)(w)
+    Z_sum = w -> f(w) + one_over_Z_ij(w)
+    add_value_to_matrix_row(matrix_header, new_row, 
+                            node_id, 
+                            one_over_Z_ij)
   end
+  add_value_to_matrix_row(matrix_header, new_row, 
+    act_id, 
+    Z_sum
+  )  
   
   sort!(new_row, by = first) 
   
@@ -218,171 +233,6 @@ function add_equation_I_row(pos, auxilary_A, dims, matrix_header, sys_row_idx, s
   push!(RHS, 0.0) 
   return
 end
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-function add_U_eq_for_each_relevant_path!(Z_vector, auxilary_A::Array{<:Integer, 3}, dims, matrix_header, sys_row_idx, sparse_input, RHS)
-  A = auxilary_A[2:end-1, 2:end-1, 2:end-1]
-  m, n, s = dims
-  
-  for layer in 1:s
-    for row in 1:m
-      for fall_point in n+1:-1: (row != m ? 1 : n+1)  
-        new_row = []
-        # first index of each path is 2
-        idx1 = 2
-        column = 1
-        act_row = row
-        while column < n + 1        
-          idx2 = A[act_row, column, layer]
-          add_value_to_matrix_row(
-              matrix_header, 
-              new_row, 
-              idx1, idx2,
-              Z_vector[aux_matrix_connectivity_entries_to_lin_idx(idx1, idx2, dims...)],
-              dims
-          )
-          idx1 = idx2
-          #
-          if fall_point == column && act_row == row
-            act_row += 1
-          else
-            column += 1
-          end          
-        end
-        # last index of each path is m*n*s + 3
-        idx2 = m*n*s + 3
-        add_value_to_matrix_row(
-            matrix_header, 
-            new_row, 
-            idx1, idx2,
-            Z_vector[aux_matrix_connectivity_entries_to_lin_idx(idx1, idx2, dims...)],
-            dims
-        )
-        #
-        sort!(new_row, by = first)
-        
-        sys_row_idx[1] += 1
-        add_row_to_sparse_input!(sparse_input, new_row, sys_row_idx[1])   
-        push!(RHS, 1.0)      
-      end
-    end
-  end
-  
-  
-  for layer in 1:s-1
-    for row in 1:m
-      for fall_point in n:-1: 1   
-        new_row = []
-        # first index of each path is 2
-        idx1 = 2
-        column = 1
-        act_layer = layer
-        while column < n + 1        
-          idx2 = A[row, column, act_layer]
-          add_value_to_matrix_row(
-              matrix_header, 
-              new_row, 
-              idx1, idx2,
-              Z_vector[aux_matrix_connectivity_entries_to_lin_idx(idx1, idx2, dims...)],
-              dims
-          )
-          idx1 = idx2
-          #
-          if fall_point == column && act_layer == layer
-            act_layer += 1
-          else
-            column += 1
-          end    
-        end
-        # last index of each path is m*n*s + 3
-        idx2 = m*n*s + 3
-        add_value_to_matrix_row(
-            matrix_header, 
-            new_row, 
-            idx1, idx2,
-            Z_vector[aux_matrix_connectivity_entries_to_lin_idx(idx1, idx2, dims...)],
-            dims
-        )
-        #
-        sort!(new_row, by = first)
-        
-        sys_row_idx[1] += 1
-        add_row_to_sparse_input!(sparse_input, new_row, sys_row_idx[1])   
-        push!(RHS, 1.0)      
-      end
-    end
-  end    
-  return
-end
-
-
-
-
-
-function add_U_eq_for_each_relevant_path!(Z_vector, auxilary_A::Array{<:Integer, 2}, dims, matrix_header, sys_row_idx, sparse_input, RHS)
-  A = auxilary_A[2:end-1, 2:end-1]
-  m,n = dims
-  
-  for row in 1:m
-    for fall_point in n+1:-1: (row != m ? 1 : n+1)  
-      new_row = []
-      # first index of each path is 2
-      idx1 = 2
-      column = 1
-      act_row = row
-      while column < n + 1        
-        idx2 = A[act_row, column]
-        add_value_to_matrix_row(
-            matrix_header,
-            new_row,
-            idx1, idx2,
-            Z_vector[aux_matrix_connectivity_entries_to_lin_idx(idx1, idx2, dims...)],
-            dims
-        )
-        idx1 = idx2
-        #
-        if fall_point == column && act_row == row
-          act_row += 1
-        else
-          column += 1
-        end          
-      end
-      # last index of each path is m*n + 3
-      idx2 = m*n + 3
-      add_value_to_matrix_row(
-          matrix_header, 
-          new_row, 
-          idx1, idx2,
-          Z_vector[aux_matrix_connectivity_entries_to_lin_idx(idx1, idx2, dims...)],
-          dims
-      )
-      #
-      sort!(new_row, by = first)
-      
-      sys_row_idx[1] += 1
-      add_row_to_sparse_input!(sparse_input, new_row, sys_row_idx[1])   
-      push!(RHS, 1.0)      
-    end
-  end
-  
-  return
-end
-
-
 
 
 
@@ -417,27 +267,17 @@ function vector_to_lin_sys(Z_vector, auxilary_A)
   dims = size(auxilary_A) .- 2
   
   mode_3D = length(dims) == 3
-  # I verticesnext(i,j)
-  # initial vertex "2"
-  if mode_3D
-    add_equation_I_row((1,0,1), auxilary_A, dims, matrix_header, sys_row_idx, sparse_input, RHS)
-  else
-    add_equation_I_row((1,0), auxilary_A, dims, matrix_header, sys_row_idx, sparse_input, RHS)
-  end
-  
+
   # other vertices
   if mode_3D
     for i in 1:dims[1], j in 1:dims[2], k in 1:dims[3]
-      add_equation_I_row((i,j, k), auxilary_A, dims, matrix_header, sys_row_idx, sparse_input, RHS)
+      add_equation_I_row((i,j, k), Z_vector, auxilary_A, dims, matrix_header, sys_row_idx, sparse_input, RHS)
     end
   else
     for i in 1:dims[1], j in 1:dims[2]
-        add_equation_I_row((i,j), auxilary_A, dims, matrix_header, sys_row_idx, sparse_input, RHS)
+        add_equation_I_row((i,j), Z_vector, auxilary_A, dims, matrix_header, sys_row_idx, sparse_input, RHS)
     end
   end
-    
-  # U equations
-  add_U_eq_for_each_relevant_path!(Z_vector, auxilary_A, dims, matrix_header, sys_row_idx, sparse_input, RHS)
   
   matrix_header_output = get_readable_matrix_header(matrix_header)
   
