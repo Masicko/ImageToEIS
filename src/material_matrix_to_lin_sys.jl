@@ -245,13 +245,10 @@ function add_equation_I_row(pos, Z_vector, auxilary_A, dims, matrix_header, sys_
   else
     new_row_ending_index = length(new_row)
   end
-  
-  #[@show new_row[i][1] for i in 1:length(new_row)]
-  #@show new_row_start_index, new_row_ending_index
 
   sys_row_idx[1] += 1
   add_row_to_sparse_input!(sparse_input, new_row[new_row_start_index : new_row_ending_index], sys_row_idx[1]) 
-  return  
+  return
 end
 
 
@@ -432,7 +429,6 @@ function add_Z_to_vector!(Z_vector, pos, dir, aux_A, large_material_A, p, dims)
     end
 end
 
-
 function current_measurement(aux_A::Array{<:Integer, 2}, Z_vector, dims)
   current_sum = (Us, w) -> 0
   for i in 2:dims[1]+1
@@ -440,7 +436,24 @@ function current_measurement(aux_A::Array{<:Integer, 2}, Z_vector, dims)
 
     f = deepcopy(current_sum)
     current_sum = (Us, w) -> (f(Us, w) - 
-      (Us[i-1] - 1.0)/(
+      (Us[act_id - shift_new_row_by] - 1.0)/(
+        Z_vector[aux_matrix_connectivity_entries_to_lin_idx(2, act_id, dims...)](w)
+      )
+    )
+    end
+  return current_sum
+end
+
+
+
+function current_measurement(aux_A::Array{<:Integer, 3}, Z_vector, dims)
+  current_sum = (Us, w) -> 0
+  for i in 2:dims[1]+1, j in 2:dims[3]+1
+    act_id = aux_A[i,2,j]
+
+    f = deepcopy(current_sum)
+    current_sum = (Us, w) -> (f(Us, w) - 
+      (Us[act_id - shift_new_row_by] - 1.0)/(
         Z_vector[aux_matrix_connectivity_entries_to_lin_idx(2, act_id, dims...)](w)
       )
     )
