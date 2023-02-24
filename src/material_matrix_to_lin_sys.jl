@@ -109,14 +109,6 @@ max_lin_idx(m,n,s) =  if s==1
 
 
 
-function add_value_to_matrix_row(matrix_header, equation_row, unknown_id, value)
-    # " .. -1 " because U1 (in auxilary matrix) is not unknown 
-    push!(matrix_header, (unknown_id-1, (unknown_id)))
-    push!(equation_row, (unknown_id-1, value))
-end
-
-
-
 
 
 
@@ -199,6 +191,14 @@ function add_row_to_sparse_input!(sparse_input,
 end
 
 
+const shift_new_row_by = 2
+
+function add_value_to_matrix_row(matrix_header, equation_row, unknown_id, value)
+    # " ..  " because U1  (in auxilary matrix) is not unknown 
+    push!(matrix_header, (unknown_id-shift_new_row_by, (unknown_id)))
+    push!(equation_row, (unknown_id-shift_new_row_by, value))
+end
+
 function add_equation_I_row(pos, Z_vector, auxilary_A, dims, matrix_header, sys_row_idx, sparse_input, RHS)
   new_row = []
   act_id = auxilary_A[pos .+ 1 ...]               
@@ -207,7 +207,7 @@ function add_equation_I_row(pos, Z_vector, auxilary_A, dims, matrix_header, sys_
   for node_id in previous(pos..., auxilary_A)
     one_over_Z_ji = w -> 1/(Z_vector[aux_matrix_connectivity_entries_to_lin_idx(node_id, act_id, dims...)](w))
     f = deepcopy(Z_sum)
-    Z_sum = w -> f(w) + one_over_Z_ji(w)
+    Z_sum = w -> f(w) - one_over_Z_ji(w)
     add_value_to_matrix_row(matrix_header, new_row, 
                             node_id, 
                             one_over_Z_ji)
@@ -215,7 +215,7 @@ function add_equation_I_row(pos, Z_vector, auxilary_A, dims, matrix_header, sys_
   for node_id in next(pos..., auxilary_A)    
     one_over_Z_ij = w -> 1/(Z_vector[aux_matrix_connectivity_entries_to_lin_idx(act_id, node_id, dims...)](w))
     f = deepcopy(Z_sum)
-    Z_sum = w -> f(w) + one_over_Z_ij(w)
+    Z_sum = w -> f(w) - one_over_Z_ij(w)
     add_value_to_matrix_row(matrix_header, new_row, 
                             node_id, 
                             one_over_Z_ij)
@@ -237,18 +237,21 @@ function add_equation_I_row(pos, Z_vector, auxilary_A, dims, matrix_header, sys_
     push!(RHS, 0.0)
     new_row_start_index = 1
   end
+
   # if the last entry to new row is U(m*n*s)+3... the last "electrode" node... it has value 0.0 
   # ... and indexes are shifted "-1" while storing in new_row
-
-  if new_row[end][1] == prod(dims) + 2
+  if new_row[end][1] == prod(dims) + 3 - shift_new_row_by
     new_row_ending_index = length(new_row) - 1
   else
     new_row_ending_index = length(new_row)
   end
   
+  #[@show new_row[i][1] for i in 1:length(new_row)]
+  #@show new_row_start_index, new_row_ending_index
+
   sys_row_idx[1] += 1
   add_row_to_sparse_input!(sparse_input, new_row[new_row_start_index : new_row_ending_index], sys_row_idx[1]) 
-  return
+  return  
 end
 
 
@@ -286,11 +289,11 @@ function vector_to_lin_sys(Z_vector, auxilary_A)
   mode_3D = length(dims) == 3
 
   # vertex U2
-  if mode_3D
-    add_equation_I_row((1,0, 1), Z_vector, auxilary_A, dims, matrix_header, sys_row_idx, sparse_input, RHS)
-  else
-    add_equation_I_row((1,0), Z_vector, auxilary_A, dims, matrix_header, sys_row_idx, sparse_input, RHS)
-  end
+  #if mode_3D
+    #add_equation_I_row((1,0, 1), Z_vector, auxilary_A, dims, matrix_header, sys_row_idx, sparse_input, RHS)
+  #else
+    #add_equation_I_row((1,0), Z_vector, auxilary_A, dims, matrix_header, sys_row_idx, sparse_input, RHS)
+  #end
 
   # other vertices
   if mode_3D
@@ -430,6 +433,22 @@ function add_Z_to_vector!(Z_vector, pos, dir, aux_A, large_material_A, p, dims)
 end
 
 
+function current_measurement(aux_A::Array{<:Integer, 2}, Z_vector, dims)
+  current_sum = (Us, w) -> 0
+  for i in 2:dims[1]+1
+    act_id = aux_A[i,2]
+
+    f = deepcopy(current_sum)
+    current_sum = (Us, w) -> (f(Us, w) - 
+      (Us[i-1] - 1.0)/(
+        Z_vector[aux_matrix_connectivity_entries_to_lin_idx(2, act_id, dims...)](w)
+      )
+    )
+    end
+  return current_sum
+end
+
+
 function material_matrix_to_lin_sys(
             material_A::Array{<:Integer}=[0 0 0; 1 1 1],
             p::parameters=parameters()
@@ -442,7 +461,6 @@ function material_matrix_to_lin_sys(
     
     Z_vector = Vector{Union{Function}}(undef, max_lin_idx(dims...))
     Z_vector .= w -> 0
-    Z_vector[1] = w -> 1.0
     for d in vcat(get_previous_list(dims...), get_next_list(dims...))  
       for i in 2:dims[1]+1
         for j in 2:dims[2]+1                
@@ -466,7 +484,7 @@ function material_matrix_to_lin_sys(
         add_Z_to_vector!(Z_vector, (i,1), (0, +1), aux_A, large_material_A, p, dims)
         add_Z_to_vector!(Z_vector, (i,dims[2]+2), (0, -1), aux_A, large_material_A, p, dims)
       end
-    end    
+    end
     #return Z_vector, aux_A, large_material_A
-    return vector_to_lin_sys(Z_vector, aux_A)    
+    return vector_to_lin_sys(Z_vector, aux_A), current_measurement(aux_A, Z_vector, dims)
 end

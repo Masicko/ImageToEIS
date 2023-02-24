@@ -28,8 +28,8 @@ function material_matrix_to_impedance(
            
   if verbose
     @time params = get_prms_from_pairs(prms_pairs)
-    @time header, sp_input, b_real = material_matrix_to_lin_sys(material_matrix, params)          
-  
+    @time (header, sp_input, b_real), current_measurement = material_matrix_to_lin_sys(material_matrix, params)          
+    
     nz_el_count = length(sp_input[3])
     sp_input_vals_eval = Array{complex_type}(undef, nz_el_count)            
     b_eval = Array{complex_type}(undef, length(b_real))
@@ -48,23 +48,26 @@ function material_matrix_to_impedance(
       end       
     end
 
+    #return sp_input
+
     for f in f_list
       verbose && @show f        
-      @time evaluate_list_for_w!(sp_input_vals_eval, sp_input[3], 2*pi*f) 
-      @time evaluate_list_for_w!(b_eval, b_real, 2*pi*f)
+      w = 2*pi*f
+      @time evaluate_list_for_w!(sp_input_vals_eval, sp_input[3], w)
+      @time evaluate_list_for_w!(b_eval, b_real, w)
       
       A_eval = sparse(sp_input[1], sp_input[2], sp_input_vals_eval)
       
       if return_only_linsys
-        return A_eval, b_eval
+        return A_eval, b_eval, current_measurement
       end
       @time if iterative_solver       
         x = bicgstabl(A_eval, b_eval)
       else                
         x = A_eval \ b_eval
       end
-
-      push!(Z_list, -x[1])
+      
+      push!(Z_list, 1.0/current_measurement(real.(x), w))
     end    
   else
     params = get_prms_from_pairs(prms_pairs)
