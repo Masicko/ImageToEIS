@@ -283,26 +283,20 @@ function vector_to_lin_sys(Y_vector, auxilary_A)
   
   mode_3D = length(dims) == 3
 
-  # vertex U2
-  #if mode_3D
-    #add_equation_I_row((1,0, 1), Y_vector, auxilary_A, dims, matrix_header, sys_row_idx, sparse_input, RHS)
-  #else
-    #add_equation_I_row((1,0), Y_vector, auxilary_A, dims, matrix_header, sys_row_idx, sparse_input, RHS)
-  #end
-
-  # other vertices
-  if mode_3D
-    for i in 1:dims[1], j in 1:dims[2], k in 1:dims[3]
-      add_equation_I_row((i,j, k), Y_vector, auxilary_A, dims, matrix_header, sys_row_idx, sparse_input, RHS)
+  @time begin
+    # other vertices
+    if mode_3D
+      for i in 1:dims[1], j in 1:dims[2], k in 1:dims[3]
+        add_equation_I_row((i,j, k), Y_vector, auxilary_A, dims, matrix_header, sys_row_idx, sparse_input, RHS)
+      end
+    else
+      for i in 1:dims[1], j in 1:dims[2]
+          add_equation_I_row((i,j), Y_vector, auxilary_A, dims, matrix_header, sys_row_idx, sparse_input, RHS)
+      end
     end
-  else
-    for i in 1:dims[1], j in 1:dims[2]
-        add_equation_I_row((i,j), Y_vector, auxilary_A, dims, matrix_header, sys_row_idx, sparse_input, RHS)
-    end
-  end
-  
-  matrix_header_output = get_readable_matrix_header(matrix_header)
-  
+  end 
+  @time matrix_header_output = get_readable_matrix_header(matrix_header)
+  @show "end ------------------_"
   return matrix_header_output, sparse_input, RHS
 end
 
@@ -447,17 +441,18 @@ end
 
 function current_measurement(aux_A::Array{<:Integer, 3}, Y_vector, dims)
   current_sum = (Us, w) -> 0
+  Y_and_act_id_sum_list = []
   for i in 2:dims[1]+1, j in 2:dims[3]+1
     act_id = aux_A[i,2,j]
-
-    f = deepcopy(current_sum)
-    current_sum = (Us, w) -> (f(Us, w) - 
-      (Us[act_id - shift_new_row_by] - 1.0)*(
-        Y_vector[aux_matrix_connectivity_entries_to_lin_idx(2, act_id, dims...)](w)
+    push!(Y_and_act_id_sum_list, (
+      Y_vector[aux_matrix_connectivity_entries_to_lin_idx(2, act_id, dims...)],
+      act_id  
       )
     )
-    end
-  return current_sum
+  end
+  return (Us, w) -> -sum([
+    (Us[act_id - shift_new_row_by] - 1.0)*Y_act(w) for (Y_act, act_id) in Y_and_act_id_sum_list
+  ])
 end
 
 
@@ -470,33 +465,37 @@ function material_matrix_to_lin_sys(
     mode_3D = length(dims) == 3
     aux_A = get_auxilary_graph_matrix(dims...)
     large_material_A = get_large_material_matrix(material_A)
-    
-    Y_vector = Vector{Union{Function}}(undef, max_lin_idx(dims...))
-    Y_vector .= w -> Inf
-    for d in vcat(get_previous_list(dims...), get_next_list(dims...))
-      for i in 2:dims[1]+1
-        for j in 2:dims[2]+1                
-          if mode_3D
-            for k in 2:dims[3]+1
-              add_Y_to_vector!(Y_vector, (i, j, k), d, aux_A, large_material_A, p, dims)
+
+
+    @show "TEST MATERIAL ------------_"
+    @time begin
+      Y_vector = Vector{Union{Function}}(undef, max_lin_idx(dims...))
+      Y_vector .= w -> Inf
+      for d in vcat(get_previous_list(dims...), get_next_list(dims...))
+        for i in 2:dims[1]+1
+          for j in 2:dims[2]+1                
+            if mode_3D
+              for k in 2:dims[3]+1
+                add_Y_to_vector!(Y_vector, (i, j, k), d, aux_A, large_material_A, p, dims)
+              end
+            else
+              add_Y_to_vector!(Y_vector, (i, j), d, aux_A, large_material_A, p, dims)
             end
-          else
-            add_Y_to_vector!(Y_vector, (i, j), d, aux_A, large_material_A, p, dims)
           end
         end
       end
-    end
-    for i in 2:dims[1]+1
-      if mode_3D
-        for k in 2:dims[3]+1
-          add_Y_to_vector!(Y_vector, (i,1, k), (0, +1, 0), aux_A, large_material_A, p, dims)
-          add_Y_to_vector!(Y_vector, (i,dims[2]+2, k), (0, -1, 0), aux_A, large_material_A, p, dims)
+      for i in 2:dims[1]+1
+        if mode_3D
+          for k in 2:dims[3]+1
+            add_Y_to_vector!(Y_vector, (i,1, k), (0, +1, 0), aux_A, large_material_A, p, dims)
+            add_Y_to_vector!(Y_vector, (i,dims[2]+2, k), (0, -1, 0), aux_A, large_material_A, p, dims)
+          end
+        else
+          add_Y_to_vector!(Y_vector, (i,1), (0, +1), aux_A, large_material_A, p, dims)
+          add_Y_to_vector!(Y_vector, (i,dims[2]+2), (0, -1), aux_A, large_material_A, p, dims)
         end
-      else
-        add_Y_to_vector!(Y_vector, (i,1), (0, +1), aux_A, large_material_A, p, dims)
-        add_Y_to_vector!(Y_vector, (i,dims[2]+2), (0, -1), aux_A, large_material_A, p, dims)
       end
     end
     #return Y_vector, aux_A, large_material_A
-    return vector_to_lin_sys(Y_vector, aux_A), current_measurement(aux_A, Y_vector, dims)
+    return @time vector_to_lin_sys(Y_vector, aux_A), @time current_measurement(aux_A, Y_vector, dims)
 end
