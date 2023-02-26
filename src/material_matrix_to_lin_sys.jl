@@ -283,20 +283,19 @@ function vector_to_lin_sys(Y_vector, auxilary_A)
   
   mode_3D = length(dims) == 3
 
-  @time begin
-    # other vertices
-    if mode_3D
-      for i in 1:dims[1], j in 1:dims[2], k in 1:dims[3]
-        add_equation_I_row((i,j, k), Y_vector, auxilary_A, dims, matrix_header, sys_row_idx, sparse_input, RHS)
-      end
-    else
-      for i in 1:dims[1], j in 1:dims[2]
-          add_equation_I_row((i,j), Y_vector, auxilary_A, dims, matrix_header, sys_row_idx, sparse_input, RHS)
-      end
+
+  # other vertices
+  if mode_3D
+    for i in 1:dims[1], j in 1:dims[2], k in 1:dims[3]
+      add_equation_I_row((i,j, k), Y_vector, auxilary_A, dims, matrix_header, sys_row_idx, sparse_input, RHS)
     end
-  end 
-  @time matrix_header_output = get_readable_matrix_header(matrix_header)
-  @show "end ------------------_"
+  else
+    for i in 1:dims[1], j in 1:dims[2]
+        add_equation_I_row((i,j), Y_vector, auxilary_A, dims, matrix_header, sys_row_idx, sparse_input, RHS)
+    end
+  end
+  
+  matrix_header_output = get_readable_matrix_header(matrix_header)
   return matrix_header_output, sparse_input, RHS
 end
 
@@ -466,36 +465,33 @@ function material_matrix_to_lin_sys(
     aux_A = get_auxilary_graph_matrix(dims...)
     large_material_A = get_large_material_matrix(material_A)
 
-
-    @show "TEST MATERIAL ------------_"
-    @time begin
-      Y_vector = Vector{Union{Function}}(undef, max_lin_idx(dims...))
-      Y_vector .= w -> Inf
-      for d in vcat(get_previous_list(dims...), get_next_list(dims...))
-        for i in 2:dims[1]+1
-          for j in 2:dims[2]+1                
-            if mode_3D
-              for k in 2:dims[3]+1
-                add_Y_to_vector!(Y_vector, (i, j, k), d, aux_A, large_material_A, p, dims)
-              end
-            else
-              add_Y_to_vector!(Y_vector, (i, j), d, aux_A, large_material_A, p, dims)
-            end
-          end
-        end
-      end
+    Y_vector = Vector{Union{Function}}(undef, max_lin_idx(dims...))
+    Y_vector .= w -> Inf
+    for d in vcat(get_previous_list(dims...), get_next_list(dims...))
       for i in 2:dims[1]+1
-        if mode_3D
-          for k in 2:dims[3]+1
-            add_Y_to_vector!(Y_vector, (i,1, k), (0, +1, 0), aux_A, large_material_A, p, dims)
-            add_Y_to_vector!(Y_vector, (i,dims[2]+2, k), (0, -1, 0), aux_A, large_material_A, p, dims)
+        for j in 2:dims[2]+1                
+          if mode_3D
+            for k in 2:dims[3]+1
+              add_Y_to_vector!(Y_vector, (i, j, k), d, aux_A, large_material_A, p, dims)
+            end
+          else
+            add_Y_to_vector!(Y_vector, (i, j), d, aux_A, large_material_A, p, dims)
           end
-        else
-          add_Y_to_vector!(Y_vector, (i,1), (0, +1), aux_A, large_material_A, p, dims)
-          add_Y_to_vector!(Y_vector, (i,dims[2]+2), (0, -1), aux_A, large_material_A, p, dims)
         end
       end
     end
+    for i in 2:dims[1]+1
+      if mode_3D
+        for k in 2:dims[3]+1
+          add_Y_to_vector!(Y_vector, (i,1, k), (0, +1, 0), aux_A, large_material_A, p, dims)
+          add_Y_to_vector!(Y_vector, (i,dims[2]+2, k), (0, -1, 0), aux_A, large_material_A, p, dims)
+        end
+      else
+        add_Y_to_vector!(Y_vector, (i,1), (0, +1), aux_A, large_material_A, p, dims)
+        add_Y_to_vector!(Y_vector, (i,dims[2]+2), (0, -1), aux_A, large_material_A, p, dims)
+      end
+    
+    end
     #return Y_vector, aux_A, large_material_A
-    return @time vector_to_lin_sys(Y_vector, aux_A), @time current_measurement(aux_A, Y_vector, dims)
+    return vector_to_lin_sys(Y_vector, aux_A), current_measurement(aux_A, Y_vector, dims)
 end
