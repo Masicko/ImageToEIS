@@ -35,29 +35,17 @@ function material_matrix_to_impedance(
             )
            
   if verbose
-    @time params = get_prms_from_pairs(prms_pairs)
-    @time (header, sp_input, RHS), current_measurement = material_matrix_to_lin_sys(material_matrix, params)          
+    @time params = get_prms_from_pairs(prms_pairs)          
 
-    sp_input_vals_eval = Array{complex_type}(undef, length(sp_input[3]))          
-    b_eval = Array{complex_type}(undef, length(RHS))
-    
     Z_list = []
-    
-    @time begin
-      fill_static_entries!(sp_input_vals_eval, sp_input[3])
-      fill_static_entries!(b_eval, RHS)
-    end 
 
     for f in f_list
       verbose && @show f        
       w = 2*pi*f
-      @time begin
-        evaluate_nonstatic_entries_for_w!(sp_input_vals_eval, sp_input[3], w)
-        evaluate_nonstatic_entries_for_w!(b_eval, RHS, w)
-      end
       
-      A_eval = sparse(sp_input[1], sp_input[2], sp_input_vals_eval)
-      
+      @time (header, sp_input, b_eval), current_measurement = material_matrix_to_lin_sys(material_matrix, params, w)
+      A_eval = sparse(sp_input...)
+
       if return_only_linsys
         return A_eval, b_eval, current_measurement
       end
@@ -69,25 +57,17 @@ function material_matrix_to_impedance(
       push!(Z_list, 1.0/current_measurement(x, w))
     end    
   else
-    params = get_prms_from_pairs(prms_pairs)
-    (header, sp_input, RHS), current_measurement = material_matrix_to_lin_sys(material_matrix, params)          
+    params = get_prms_from_pairs(prms_pairs)          
 
-    sp_input_vals_eval = Array{complex_type}(undef, length(sp_input[3]))          
-    b_eval = Array{complex_type}(undef, length(RHS))
-    
     Z_list = []
-    
-    fill_static_entries!(sp_input_vals_eval, sp_input[3])
-    fill_static_entries!(b_eval, RHS)
-    
-    for f in f_list      
+
+    for f in f_list
+      verbose && @show f        
       w = 2*pi*f
       
-      evaluate_nonstatic_entries_for_w!(sp_input_vals_eval, sp_input[3], w)
-      evaluate_nonstatic_entries_for_w!(b_eval, RHS, w)
-   
-      A_eval = sparse(sp_input[1], sp_input[2], sp_input_vals_eval)
-      
+      (header, sp_input, b_eval), current_measurement = material_matrix_to_lin_sys(material_matrix, params, w)
+      A_eval = sparse(sp_input...)
+
       if return_only_linsys
         return A_eval, b_eval, current_measurement
       end
@@ -97,7 +77,7 @@ function material_matrix_to_impedance(
         x = A_eval \ b_eval
       end
       push!(Z_list, 1.0/current_measurement(x, w))
-    end  
+    end     
   end
 
   return f_list, Z_list

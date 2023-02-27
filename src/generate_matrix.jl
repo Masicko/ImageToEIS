@@ -2,7 +2,6 @@
 function generate_matrix(dimensions, porosity::Float64, LSM_ratio::Float64, pore_prob::Union{Float64, Nothing}=nothing; recursion_depth=1e12, check_connectivity=true)
   if typeof(pore_prob) == Nothing
     the_domain = Array{Int16}(undef, dimensions)
-    @show "tu"
     repetition_number = 1
     while repetition_number < recursion_depth
       for i in 1:length(the_domain[:])
@@ -16,7 +15,6 @@ function generate_matrix(dimensions, porosity::Float64, LSM_ratio::Float64, pore
           end
         end
       end      
-      #@show the_domain[1]
       if !check_connectivity || check_material_connection(the_domain)
         return the_domain
       else
