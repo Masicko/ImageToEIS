@@ -1,79 +1,36 @@
-# function generate_random_specification(LSM_ratio, porosity)
-#   v = Array{Int16}(undef, 100)    
-#   
-#     
-#   hole_length = Int32(round(porosity*100))
-#   LSM_length = Int32(round((1 - porosity)*LSM_ratio*100))        
-#   
-#   v .= i_YSZ
-#   v[1 : hole_length] .= i_hole
-#   v[hole_length + 1 : hole_length + LSM_length] .= i_LSM
-#   return v
-# end
 
-# generate random matrix of dimensions 
-function generate_matrix(dimensions::Tuple{T, T} where T <: Integer, porosity::Float64, LSM_ratio::Float64, pore_prob::Union{Float64, Nothing}=nothing; recursion_depth=1000000, check_connectivity=true)
+function generate_matrix(dimensions, porosity::Float64, LSM_ratio::Float64, pore_prob::Union{Float64, Nothing}=nothing; recursion_depth=1e12, check_connectivity=true)
   if typeof(pore_prob) == Nothing
-    the_domain = Matrix{Int16}(undef, dimensions)
-    for i in 1:length(the_domain[:])
-      if rand() <= porosity
-        the_domain[i] = i_hole
-      else
-        if rand() <= LSM_ratio
-          the_domain[i] = i_LSM
+    the_domain = Array{Int16}(undef, dimensions)
+    @show "tu"
+    repetition_number = 1
+    while repetition_number < recursion_depth
+      for i in 1:length(the_domain[:])
+        if rand() <= porosity
+          the_domain[i] = i_hole
         else
-          the_domain[i] = i_YSZ
+          if rand() <= LSM_ratio
+            the_domain[i] = i_LSM
+          else
+            the_domain[i] = i_YSZ
+          end
         end
-      end
-    end      
-    
-    if !check_connectivity || check_material_connection(the_domain)
-      return the_domain
-    else
-      if recursion_depth > 0        
-        return generate_matrix(dimensions, porosity, LSM_ratio, pore_prob, recursion_depth=recursion_depth-1)
+      end      
+      #@show the_domain[1]
+      if !check_connectivity || check_material_connection(the_domain)
+        return the_domain
       else
-        println("ERROR: recursion_depth = 0 ... no trials left ... material_connectivity is not ensured")
-        return -1
+        repetition_number += 1
       end
     end
-  
+    
+    println("ERROR: recursion_depth = 0 ... no trials left ... material_connectivity is not ensured")
+    return -1
   else
     return shoot_pores(dimensions, porosity, LSM_ratio, pore_prob)
   end
 end
 
-function generate_matrix(dimensions::Tuple{T, T, T} where T <: Integer, porosity::Float64, LSM_ratio::Float64, pore_prob::Union{Float64, Nothing}=nothing; recursion_depth=1000000, check_connectivity=true)
-  if typeof(pore_prob) == Nothing
-    
-    the_domain = Array{Int16}(undef, dimensions)
-    for i in 1:length(the_domain[:])
-      if rand() <= porosity
-        the_domain[i] = i_hole
-      else
-        if rand() <= LSM_ratio
-          the_domain[i] = i_LSM
-        else
-          the_domain[i] = i_YSZ
-        end
-      end
-    end        
-    
-    if !check_connectivity || check_material_connection(the_domain)
-      return the_domain
-    else
-      if recursion_depth > 0        
-        return generate_matrix(dimensions, porosity, LSM_ratio, pore_prob, recursion_depth=recursion_depth-1)
-      else
-        println("ERROR: recursion_depth = 0 ... no trials left ... material_connectivity is not ensured")
-        return -1
-      end
-    end    
-    return the_domain
-  else
-    return shoot_pores(dimensions, porosity, LSM_ratio, pore_prob)
-  end  
-end
 
 function generate_submatrix_to_matrix(matrix, left_upper::Union{Tuple, Array}, right_lower::Union{Tuple, Array}, porosity::Float64, LSM_ratio::Float64)
   submatrix = generate_matrix(right_lower .- left_upper .+ (1,1), porosity, LSM_ratio)
