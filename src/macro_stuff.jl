@@ -243,7 +243,7 @@ function par_study(
   if haskey(input_prms_dict, "make_node_busy") && input_prms_dict["make_node_busy"] == 1
     dummy = 0
     while true
-      println(dummy)
+      #println(dummy)
       dummy += 1
     end
   else

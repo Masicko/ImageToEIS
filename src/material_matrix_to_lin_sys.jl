@@ -422,24 +422,23 @@ function add_Y_to_vector!(Y_vector, pos, dir, aux_A, large_material_A, p, dims)
 end
 
 function current_measurement(aux_A::Array{<:Integer, 2}, Y_vector, dims)
-  current_sum = (Us, w) -> 0
+  Y_and_act_id_sum_list = []
   for i in 2:dims[1]+1
     act_id = aux_A[i,2]
-
-    f = deepcopy(current_sum)
-    current_sum = (Us, w) -> (f(Us, w) - 
-      (Us[act_id - shift_new_row_by] - 1.0)*(
-        Y_vector[aux_matrix_connectivity_entries_to_lin_idx(2, act_id, dims...)](w)
+    push!(Y_and_act_id_sum_list, (
+      Y_vector[aux_matrix_connectivity_entries_to_lin_idx(2, act_id, dims...)],
+      act_id  
       )
     )
-    end
-  return current_sum
+  end
+  return (Us, w) -> -sum([
+    (Us[act_id - shift_new_row_by] - 1.0)*Y_act(w) for (Y_act, act_id) in Y_and_act_id_sum_list
+  ])
 end
 
 
 
 function current_measurement(aux_A::Array{<:Integer, 3}, Y_vector, dims)
-  current_sum = (Us, w) -> 0
   Y_and_act_id_sum_list = []
   for i in 2:dims[1]+1, j in 2:dims[3]+1
     act_id = aux_A[i,2,j]
