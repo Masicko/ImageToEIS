@@ -29,11 +29,18 @@ function material_matrix_to_impedance(
             f_list,            
             #
             complex_type=ComplexF64,
-            iterative_solver = false,
+            iterative_solver = "auto",
             verbose = false,
             return_only_linsys = false
             )
-           
+  if iterative_solver == "auto"
+    if prod(size(material_matrix)) < 1e3
+      iterative_solver = false
+    else
+      iterative_solver = true
+    end
+  end
+
   if verbose
     @time params = get_prms_from_pairs(prms_pairs)          
 
@@ -50,9 +57,10 @@ function material_matrix_to_impedance(
         return A_eval, b_eval, current_measurement
       end
       @time if iterative_solver       
-        x = bicgstabl(A_eval, b_eval)
+        p = LinearProblem(A_eval,b_eval)
+        x = LinearSolve.solve(p, KrylovJL_BICGSTAB(); Pl = ILUZero.ilu0(A))
       else                
-        x = A_eval \ b_eval
+        x = LinearSolve.solve(p)
       end
       push!(Z_list, 1.0/current_measurement(x, w))
     end    
@@ -71,10 +79,12 @@ function material_matrix_to_impedance(
       if return_only_linsys
         return A_eval, b_eval, current_measurement
       end
+
+      p = LinearProblem(A_eval,b_eval)
       if iterative_solver       
-        x = bicgstabl(A_eval, b_eval)
+        x = LinearSolve.solve(p, KrylovJL_BICGSTAB(); Pl = ILUZero.ilu0(A_eval))
       else                
-        x = A_eval \ b_eval
+        x = LinearSolve.solve(p)
       end
       push!(Z_list, 1.0/current_measurement(x, w))
     end     

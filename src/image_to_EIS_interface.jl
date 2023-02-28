@@ -33,7 +33,7 @@ function image_to_EIS(
             #f_list=[2.0^i for i in -3:10], 
             #            
             complex_type=ComplexF64,
-            iterative_solver = false,
+            iterative_solver = "auto",
             verbose = false,
             pyplot=true,
             return_R_RC=false,
