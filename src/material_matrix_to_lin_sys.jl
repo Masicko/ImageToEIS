@@ -286,11 +286,11 @@ function vector_to_lin_sys(Y_vector, auxilary_A)
 
   # other vertices
   if mode_3D
-    for i in 1:dims[1], j in 1:dims[2], k in 1:dims[3]
+    for k in 1:dims[3], j in 1:dims[2], i in 1:dims[1]
       add_equation_I_row((i,j, k), Y_vector, auxilary_A, dims, matrix_header, sys_row_idx, sparse_input, RHS)
     end
   else
-    for i in 1:dims[1], j in 1:dims[2]
+    for j in 1:dims[2], i in 1:dims[1]
         add_equation_I_row((i,j), Y_vector, auxilary_A, dims, matrix_header, sys_row_idx, sparse_input, RHS)
     end
   end
