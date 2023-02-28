@@ -203,24 +203,24 @@ function add_equation_I_row(pos, Y_vector, auxilary_A, dims, matrix_header, sys_
   new_row = []
   act_id = auxilary_A[pos .+ 1 ...]               
   #
-  Y_sum_list = []
+  Y_sum = 0 + 0*im
   for node_id in previous(pos..., auxilary_A)
     Y_ji = Y_vector[aux_matrix_connectivity_entries_to_lin_idx(node_id, act_id, dims...)]
-    push!(Y_sum_list, Y_ji)
+    Y_sum += Y_ji
     add_value_to_matrix_row(matrix_header, new_row, 
                             node_id,
                             Y_ji)
   end
   for node_id in next(pos..., auxilary_A)    
     Y_ij = Y_vector[aux_matrix_connectivity_entries_to_lin_idx(act_id, node_id, dims...)]
-    push!(Y_sum_list, Y_ij)
+    Y_sum += Y_ij
     add_value_to_matrix_row(matrix_header, new_row, 
                             node_id, 
                             Y_ij)
   end
   add_value_to_matrix_row(matrix_header, new_row, 
     act_id,
-    w -> -sum([Y_item(w) for Y_item in Y_sum_list])
+    -Y_sum
   )
 
   sort!(new_row, by = first)
@@ -229,7 +229,7 @@ function add_equation_I_row(pos, Y_vector, auxilary_A, dims, matrix_header, sys_
   # and removed from unknowns and pushed to RHS with opposite sign
   # ... and indexes are shifted "-1" while storing in new_row
   if new_row[1][1] == 0
-    push!(RHS, w -> -new_row[1][2](w))
+    push!(RHS, -new_row[1][2])
     new_row_start_index = 2
   else
     push!(RHS, 0.0)
@@ -274,10 +274,10 @@ function vector_to_lin_sys(Y_vector, auxilary_A)
   #                       sparse_input_vals )
   matrix_header = []
   
-  sparse_input = (Int64[], Int64[], Union{Float64, Function}[])
+  sparse_input = (Int64[], Int64[], Union{ComplexF64}[])
   sys_row_idx = [0]
   
-  RHS = Union{Float64, Function}[]
+  RHS = Union{ComplexF64}[]
 
   dims = size(auxilary_A) .- 2
   
@@ -394,11 +394,11 @@ function get_large_material_matrix(pre_A::Array{<:Integer, 3})
     return A
 end
 
-function add_Y_to_vector!(Y_vector, pos, dir, aux_A, large_material_A, p, dims)
+function add_Y_to_vector!(Y_vector, pos, dir, aux_A, large_material_A, p, dims, w)
     n1 = large_material_A[pos...]
     n2 = large_material_A[pos .+ dir...]
     if n2 == -1
-        return  
+        return
     end
     
     idx1 = aux_A[pos...]
@@ -410,13 +410,14 @@ function add_Y_to_vector!(Y_vector, pos, dir, aux_A, large_material_A, p, dims)
     end
     
     current_key = aux_matrix_connectivity_entries_to_lin_idx(idx1, idx2, dims...)
-    if Y_vector[current_key] == Inf
+    if Y_vector[current_key] == -Inf
         Y_vector[current_key] = 
-            get_Y_entry_from_material_matrix_codes(n1, n2, p)            
-    else            
-        f = deepcopy(Y_vector[current_key])            
-        Y_vector[current_key] = w -> 1/(1/f(w) +
-            1/get_Y_entry_from_material_matrix_codes(n1, n2, p)(w)
+            get_Y_entry_from_material_matrix_codes(n1, n2, p)(w)           
+    else      
+        Y_vector[current_key] = 1/(
+          1/Y_vector[current_key] 
+          +
+          1/(get_Y_entry_from_material_matrix_codes(n1, n2, p)(w))
         )
     end
 end
@@ -432,7 +433,7 @@ function current_measurement(aux_A::Array{<:Integer, 2}, Y_vector, dims)
     )
   end
   return (Us, w) -> -sum([
-    (Us[act_id - shift_new_row_by] - 1.0)*Y_act(w) for (Y_act, act_id) in Y_and_act_id_sum_list
+    (Us[act_id - shift_new_row_by] - 1.0)*Y_act for (Y_act, act_id) in Y_and_act_id_sum_list
   ])
 end
 
@@ -449,14 +450,15 @@ function current_measurement(aux_A::Array{<:Integer, 3}, Y_vector, dims)
     )
   end
   return (Us, w) -> -sum([
-    (Us[act_id - shift_new_row_by] - 1.0)*Y_act(w) for (Y_act, act_id) in Y_and_act_id_sum_list
+    (Us[act_id - shift_new_row_by] - 1.0)*Y_act for (Y_act, act_id) in Y_and_act_id_sum_list
   ])
 end
 
 
 function material_matrix_to_lin_sys(
             material_A::Array{<:Integer}=[0 0 0; 1 1 1],
-            p::parameters=parameters()
+            p::parameters=parameters(),
+            w::Float64=1.0
     )
     
     dims = size(material_A)
@@ -464,17 +466,17 @@ function material_matrix_to_lin_sys(
     aux_A = get_auxilary_graph_matrix(dims...)
     large_material_A = get_large_material_matrix(material_A)
 
-    Y_vector = Vector{Union{Function}}(undef, max_lin_idx(dims...))
-    Y_vector .= w -> Inf
+    Y_vector = Vector{Union{ComplexF32}}(undef, max_lin_idx(dims...))
+    Y_vector .= -Inf
     for d in vcat(get_previous_list(dims...), get_next_list(dims...))
       for i in 2:dims[1]+1
         for j in 2:dims[2]+1                
           if mode_3D
             for k in 2:dims[3]+1
-              add_Y_to_vector!(Y_vector, (i, j, k), d, aux_A, large_material_A, p, dims)
+              add_Y_to_vector!(Y_vector, (i, j, k), d, aux_A, large_material_A, p, dims, w)
             end
           else
-            add_Y_to_vector!(Y_vector, (i, j), d, aux_A, large_material_A, p, dims)
+            add_Y_to_vector!(Y_vector, (i, j), d, aux_A, large_material_A, p, dims, w)
           end
         end
       end
@@ -482,12 +484,12 @@ function material_matrix_to_lin_sys(
     for i in 2:dims[1]+1
       if mode_3D
         for k in 2:dims[3]+1
-          add_Y_to_vector!(Y_vector, (i,1, k), (0, +1, 0), aux_A, large_material_A, p, dims)
-          add_Y_to_vector!(Y_vector, (i,dims[2]+2, k), (0, -1, 0), aux_A, large_material_A, p, dims)
+          add_Y_to_vector!(Y_vector, (i,1, k), (0, +1, 0), aux_A, large_material_A, p, dims, w)
+          add_Y_to_vector!(Y_vector, (i,dims[2]+2, k), (0, -1, 0), aux_A, large_material_A, p, dims, w)
         end
       else
-        add_Y_to_vector!(Y_vector, (i,1), (0, +1), aux_A, large_material_A, p, dims)
-        add_Y_to_vector!(Y_vector, (i,dims[2]+2), (0, -1), aux_A, large_material_A, p, dims)
+        add_Y_to_vector!(Y_vector, (i,1), (0, +1), aux_A, large_material_A, p, dims, w)
+        add_Y_to_vector!(Y_vector, (i,dims[2]+2), (0, -1), aux_A, large_material_A, p, dims, w)
       end
     
     end
