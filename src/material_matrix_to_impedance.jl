@@ -56,9 +56,9 @@ function material_matrix_to_impedance(
       if return_only_linsys
         return A_eval, b_eval, current_measurement
       end
-      @time if iterative_solver       
-        p = LinearProblem(A_eval,b_eval)
-        x = LinearSolve.solve(p, KrylovJL_BICGSTAB(); Pl = ILUZero.ilu0(A))
+      p = LinearProblem(A_eval,b_eval)
+      @time if iterative_solver
+        x = LinearSolve.solve(p, KrylovJL_BICGSTAB(); Pl = ILUZero.ilu0(A_eval))
       else                
         x = LinearSolve.solve(p)
       end
