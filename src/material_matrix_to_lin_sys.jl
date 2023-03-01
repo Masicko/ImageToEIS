@@ -478,9 +478,14 @@ function integrate_between_columns(col, aux_A, Y_vector, dims)
 end
 
 function current_measurement(aux_A::Array{<:Integer, 3}, Y_vector, dims)
-  return integrate_between_columns(dims[2]+1, aux_A, Y_vector, dims)
-  #integrate_between_columns(2,3, aux_A, Y_vector, dims)
-  #integrate_between_columns(3,4, aux_A, Y_vector, dims)
+  #return integrate_between_columns(dims[2]+1, aux_A, Y_vector, dims)
+  return (Us, w) -> 
+    sum(
+      [integrate_between_columns(col, aux_A, Y_vector, dims)(Us, w)
+
+      for col in 1:dims[2]+1]
+    )/(dims[2]+1)
+  #return integrate_between_columns(3,4, aux_A, Y_vector, dims)
 end
 
 
