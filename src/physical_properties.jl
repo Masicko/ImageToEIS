@@ -27,7 +27,7 @@ function get_Y_entry_from_material_matrix_codes(n1, n2, p::parameters)
               return w -> 1/(p.R_LSM/2)
             elseif  n2 == i_YSZ
               if p.R_pol_LSM == 0.0
-                return w => 1/(p.R_LSM/2)
+                return w -> 1/(p.R_LSM/2)
               else
                 return w -> 1/(p.R_LSM/2 + RC_el(p.R_pol_LSM, p.C_pol_LSM, w))
               end

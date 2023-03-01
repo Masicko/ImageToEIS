@@ -79,10 +79,10 @@ function material_matrix_to_impedance(
       try
         sp_input_values = Float64.(sp_input[3])
         b_eval = Float64.(RHS)
-        println("converted")
+        #println("converted")
       catch
-        println("cannot convert")
-        @show sp_input[3]
+        #println("cannot convert")
+        #@show sp_input[3]
         sp_input_values = sp_input[3]
         b_eval = RHS
       end

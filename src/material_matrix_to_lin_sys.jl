@@ -422,6 +422,15 @@ function add_Y_to_vector!(Y_vector, pos, dir, aux_A, large_material_A, p, dims, 
     end
 end
 
+
+
+
+
+
+
+
+
+
 function current_measurement(aux_A::Array{<:Integer, 2}, Y_vector, dims)
   Y_and_act_id_sum_list = []
   for i in 2:dims[1]+1
@@ -439,20 +448,61 @@ end
 
 
 
-function current_measurement(aux_A::Array{<:Integer, 3}, Y_vector, dims)
+function integrate_between_columns(col, aux_A, Y_vector, dims)
+  function get_right_Us(Us, index)
+    if index == 0
+      return 1.0
+    elseif index == length(Us)+1
+      return 0.0
+    else
+      return Us[index]
+    end
+  end
+
   Y_and_act_id_sum_list = []
   for i in 2:dims[1]+1, j in 2:dims[3]+1
-    act_id = aux_A[i,2,j]
+    act_id = aux_A[i,col+1,j]
+    previous_id = aux_A[i, col, j]
     push!(Y_and_act_id_sum_list, (
-      Y_vector[aux_matrix_connectivity_entries_to_lin_idx(2, act_id, dims...)],
-      act_id  
+      Y_vector[aux_matrix_connectivity_entries_to_lin_idx(previous_id, act_id, dims...)],
+      previous_id,
+      act_id
       )
     )
   end
   return (Us, w) -> -sum([
-    (Us[act_id - shift_new_row_by] - 1.0)*Y_act for (Y_act, act_id) in Y_and_act_id_sum_list
+    (get_right_Us(Us, act_id - shift_new_row_by) - get_right_Us(Us, previous_id - shift_new_row_by))*Y_act 
+    
+    for (Y_act, previous_id, act_id) in Y_and_act_id_sum_list
   ])
 end
+
+function current_measurement(aux_A::Array{<:Integer, 3}, Y_vector, dims)
+  return integrate_between_columns(dims[2]+1, aux_A, Y_vector, dims)
+  #integrate_between_columns(2,3, aux_A, Y_vector, dims)
+  #integrate_between_columns(3,4, aux_A, Y_vector, dims)
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 function material_matrix_to_lin_sys(
