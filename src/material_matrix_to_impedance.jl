@@ -73,8 +73,20 @@ function material_matrix_to_impedance(
       verbose && @show f        
       w = 2*pi*f
       
-      (header, sp_input, b_eval), current_measurement = material_matrix_to_lin_sys(material_matrix, params, w)
-      A_eval = sparse(sp_input...)
+      (header, sp_input, RHS), current_measurement = material_matrix_to_lin_sys(material_matrix, params, w)
+      sp_input_values = []
+      b_eval = []
+      try
+        sp_input_values = Float64.(sp_input[3])
+        b_eval = Float64.(RHS)
+        println("converted")
+      catch
+        println("cannot convert")
+        @show sp_input[3]
+        sp_input_values = sp_input[3]
+        b_eval = RHS
+      end
+      A_eval = sparse(sp_input[1], sp_input[2], sp_input_values)
 
       if return_only_linsys
         return A_eval, b_eval, current_measurement

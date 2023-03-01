@@ -26,13 +26,21 @@ function get_Y_entry_from_material_matrix_codes(n1, n2, p::parameters)
             if      n2 == i_LSM
               return w -> 1/(p.R_LSM/2)
             elseif  n2 == i_YSZ
-              return w -> 1/(p.R_LSM/2 + RC_el(p.R_pol_LSM, p.C_pol_LSM, w))
+              if p.R_pol_LSM == 0.0
+                return w => 1/(p.R_LSM/2)
+              else
+                return w -> 1/(p.R_LSM/2 + RC_el(p.R_pol_LSM, p.C_pol_LSM, w))
+              end
             elseif  n2 == i_hole
               return w ->  1/(p.R_LSM/2)
             end
     elseif  n1 == i_YSZ
-            if      n2 == i_LSM              
-              return w -> 1/(p.R_YSZ/2 + RC_el(p.R_pol_YSZ, p.C_pol_YSZ, w))             
+            if      n2 == i_LSM
+              if p.R_pol_YSZ == 0.0
+                return w -> 1/(p.R_YSZ/2)
+              else          
+                return w -> 1/(p.R_YSZ/2 + RC_el(p.R_pol_YSZ, p.C_pol_YSZ, w))
+              end             
             elseif  n2 == i_YSZ
               return w -> 1/(p.R_YSZ/2)
             elseif  n2 == i_hole
