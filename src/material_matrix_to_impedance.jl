@@ -98,6 +98,7 @@ function material_matrix_to_impedance(
       else                
         x = LinearSolve.solve(p)
       end
+      #@show x
       push!(Z_list, 1.0/current_measurement(x, w))
     end     
   end

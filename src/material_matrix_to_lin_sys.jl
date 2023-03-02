@@ -431,20 +431,20 @@ end
 
 
 
-function current_measurement(aux_A::Array{<:Integer, 2}, Y_vector, dims)
-  Y_and_act_id_sum_list = []
-  for i in 2:dims[1]+1
-    act_id = aux_A[i,2]
-    push!(Y_and_act_id_sum_list, (
-      Y_vector[aux_matrix_connectivity_entries_to_lin_idx(2, act_id, dims...)],
-      act_id  
-      )
-    )
-  end
-  return (Us, w) -> -sum([
-    (Us[act_id - shift_new_row_by] - 1.0)*Y_act for (Y_act, act_id) in Y_and_act_id_sum_list
-  ])
-end
+# function current_measurement(aux_A::Array{<:Integer, 2}, Y_vector, dims)
+#   Y_and_act_id_sum_list = []
+#   for i in 2:dims[1]+1
+#     act_id = aux_A[i,2]
+#     push!(Y_and_act_id_sum_list, (
+#       Y_vector[aux_matrix_connectivity_entries_to_lin_idx(2, act_id, dims...)],
+#       act_id  
+#       )
+#     )
+#   end
+#   return (Us, w) -> -sum([
+#     (Us[act_id - shift_new_row_by] - 1.0)*Y_act for (Y_act, act_id) in Y_and_act_id_sum_list
+#   ])
+# end
 
 
 
@@ -460,15 +460,28 @@ function integrate_between_columns(col, aux_A, Y_vector, dims)
   end
 
   Y_and_act_id_sum_list = []
-  for i in 2:dims[1]+1, j in 2:dims[3]+1
-    act_id = aux_A[i,col+1,j]
-    previous_id = aux_A[i, col, j]
-    push!(Y_and_act_id_sum_list, (
-      Y_vector[aux_matrix_connectivity_entries_to_lin_idx(previous_id, act_id, dims...)],
-      previous_id,
-      act_id
+  if length(size(aux_A)) == 2
+    for i in 2:dims[1]+1
+      act_id = aux_A[i,col+1]
+      previous_id = aux_A[i, col]
+      push!(Y_and_act_id_sum_list, (
+        Y_vector[aux_matrix_connectivity_entries_to_lin_idx(previous_id, act_id, dims...)],
+        previous_id,
+        act_id
+        )
       )
-    )
+    end
+  else
+    for i in 2:dims[1]+1, j in 2:dims[3]+1
+      act_id = aux_A[i,col+1,j]
+      previous_id = aux_A[i, col, j]
+      push!(Y_and_act_id_sum_list, (
+        Y_vector[aux_matrix_connectivity_entries_to_lin_idx(previous_id, act_id, dims...)],
+        previous_id,
+        act_id
+        )
+      )
+    end
   end
   return (Us, w) -> -sum([
     (get_right_Us(Us, act_id - shift_new_row_by) - get_right_Us(Us, previous_id - shift_new_row_by))*Y_act 
@@ -477,15 +490,15 @@ function integrate_between_columns(col, aux_A, Y_vector, dims)
   ])
 end
 
-function current_measurement(aux_A::Array{<:Integer, 3}, Y_vector, dims)
-  #return integrate_between_columns(dims[2]+1, aux_A, Y_vector, dims)
-  return (Us, w) -> 
-    sum(
-      [integrate_between_columns(col, aux_A, Y_vector, dims)(Us, w)
+function current_measurement(aux_A, Y_vector, dims)
+  return integrate_between_columns(dims[2]+1, aux_A, Y_vector, dims)
+  # return (Us, w) -> 
+  #   sum(
+  #     [integrate_between_columns(col, aux_A, Y_vector, dims)(Us, w)
 
-      for col in 1:dims[2]+1]
-    )/(dims[2]+1)
-  #return integrate_between_columns(3,4, aux_A, Y_vector, dims)
+  #     for col in 1:dims[2]+1]
+  #   )/(dims[2]+1)
+  #return integrate_between_columns(2, aux_A, Y_vector, dims)
 end
 
 
