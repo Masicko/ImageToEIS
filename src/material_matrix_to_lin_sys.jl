@@ -274,10 +274,10 @@ function vector_to_lin_sys(Y_vector, auxilary_A)
   #                       sparse_input_vals )
   matrix_header = []
   
-  sparse_input = (Int64[], Int64[], Union{ComplexF64}[])
+  sparse_input = (Int64[], Int64[], ComplexF64[])
   sys_row_idx = [0]
   
-  RHS = Union{ComplexF64}[]
+  RHS = ComplexF64[]
 
   dims = size(auxilary_A) .- 2
   
@@ -491,14 +491,14 @@ function integrate_between_columns(col, aux_A, Y_vector, dims)
 end
 
 function current_measurement(aux_A, Y_vector, dims)
-  return integrate_between_columns(dims[2]+1, aux_A, Y_vector, dims)
+  #return integrate_between_columns(dims[2]+1, aux_A, Y_vector, dims)
   # return (Us, w) -> 
   #   sum(
   #     [integrate_between_columns(col, aux_A, Y_vector, dims)(Us, w)
 
   #     for col in 1:dims[2]+1]
   #   )/(dims[2]+1)
-  #return integrate_between_columns(2, aux_A, Y_vector, dims)
+  return integrate_between_columns(1, aux_A, Y_vector, dims)
 end
 
 
@@ -534,7 +534,7 @@ function material_matrix_to_lin_sys(
     aux_A = get_auxilary_graph_matrix(dims...)
     large_material_A = get_large_material_matrix(material_A)
 
-    Y_vector = Vector{Union{ComplexF32}}(undef, max_lin_idx(dims...))
+    Y_vector = Vector{ComplexF64}(undef, max_lin_idx(dims...))
     Y_vector .= -Inf
     for d in vcat(get_previous_list(dims...), get_next_list(dims...))
       for i in 2:dims[1]+1

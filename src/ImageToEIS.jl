@@ -56,4 +56,10 @@ export TI_ID2
 export TI_2D
 
 
+#using SymPy
+#include("analytical_solution_testing.jl")
+#export compare_mat
+#export sym_get_A_b_from_matrix
+
+
 end # module
