@@ -83,19 +83,23 @@ function image_to_EIS(
   
   
   if extract_R_RC 
-    R_ohm, R, C = (1.0, 1.0, 1.0)
-    if length(f_list) < 2
-      println("ERROR: extract R_ohm, R, C: length(f_list) < 2, $(length(f_list)) < 2")
-      return
+    if f_list[1] == Inf
+      R_ohm, R, C = (Z_list[1], 0.0, 0.0)
     else
-      omegas = 2*pi .* [f_list[1], f_list[end]]
-      Zs = [Z_list[1], Z_list[end]]
-      try
-        R_ohm, R, C = get_R_RC_prms_from_2Z(omegas, Zs)      
-      catch        
-        println("ERROR: R_RC circuit evaluation failed for (Z1, Z2) = $(Zs)  ... returning (f_list, Z_list)\n")
-        extract_R_RC = false
-      end      
+      R_ohm, R, C = (1.0, 1.0, 1.0)
+      if length(f_list) < 2
+        println("ERROR: extract R_ohm, R, C: length(f_list) < 2, $(length(f_list)) < 2")
+        return
+      else
+        omegas = 2*pi .* [f_list[1], f_list[end]]
+        Zs = [Z_list[1], Z_list[end]]
+        try
+          R_ohm, R, C = get_R_RC_prms_from_2Z(omegas, Zs)      
+        catch        
+          println("ERROR: R_RC circuit evaluation failed for (Z1, Z2) = $(Zs)  ... returning (f_list, Z_list)\n")
+          extract_R_RC = false
+        end      
+      end
     end
   end
   
@@ -116,36 +120,6 @@ function image_to_EIS(
       )
     end
   end
-  
-  
-#   if export_z_file == "!use_file_name"
-#     if input_path != ""      
-#       export_z_file=change_extension_to(input_path, "z")
-#     else
-#       println("ERROR: cannot export_z_file: input_path == \"\"!")
-#     end
-#   end
-#   
-#   if export_z_file != ""
-#     
-#     export_EIS_to_Z_file(export_z_file, f_list, Z_list)
-#         
-#     if save_also_image == "!input" && input_path != ""
-#       cp(
-#         input_path, 
-#         change_extension_to(export_z_file, input_path[end-2 : end]),
-#         force=true
-#       )
-#     elseif save_also_image == "!asZfile"
-#       matrix_to_file(
-#         change_extension_to(export_z_file, "png"),
-#         material_matrix
-#       )
-#     elseif save_also_image != "" && length(size(material_matrix)) == 2 
-#       matrix_to_file(save_also_image, material_matrix)
-#     end
-  
-  
   
   
   if export_z_file == "!use_file_name"

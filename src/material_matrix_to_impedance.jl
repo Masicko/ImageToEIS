@@ -22,6 +22,20 @@ function evaluate_nonstatic_entries_for_w!(eval, template, w)
   end
 end
 
+function set_initial_values(dims)
+  x = Array{Float64}(undef, prod(dims))
+  
+  for k in 1:dims[3]
+      for j in 1:dims[2]
+          start = (k-1)*dims[1]*dims[2] + (j-1)*dims[1] + 1
+          ending = start + dims[1] - 1
+          x[start : ending] .= 1.0 - j/(dims[2]+1)
+          #@show start, ending
+      end
+  end
+  return x
+end
+
 function material_matrix_to_impedance(
             material_matrix::Array = [1 1 0 1; 0 1 0 1; 0 1 0 1; 0 1 0 1],            
             prms_pairs = [];
@@ -34,7 +48,7 @@ function material_matrix_to_impedance(
             return_only_linsys = false
             )
   if iterative_solver == "auto"
-    if prod(size(material_matrix)) < 1e3
+    if prod(size(material_matrix)) < 1e5
       iterative_solver = false
     else
       iterative_solver = true
@@ -58,7 +72,11 @@ function material_matrix_to_impedance(
       end
       p = LinearProblem(A_eval,b_eval)
       @time if iterative_solver
-        x = LinearSolve.solve(p, KrylovJL_BICGSTAB(); Pl = ILUZero.ilu0(A_eval))
+        #x = LinearSolve.solve(p, KrylovJL_BICGSTAB(); Pl = ILUZero.ilu0(A_eval))
+        (x, st) = Krylov.minres_qlp(A_eval, b_eval, #x0,
+                             verbose=0, itmax=10000000,
+                            atol=0.0, rtol=1e-18
+        )      
       else                
         x = LinearSolve.solve(p)
       end
@@ -93,8 +111,26 @@ function material_matrix_to_impedance(
       end
 
       p = LinearProblem(A_eval,b_eval)
-      if iterative_solver       
-        x = LinearSolve.solve(p, KrylovJL_GMRES(verbose=0, atol=1e-10, rtol=1e-9); Pl = ILUZero.ilu0(A_eval))
+      if iterative_solver
+        #x = LinearSolve.solve(p, KrylovJL_BICGSTAB(verbose=0, atol=1e-16, rtol=1e-16); Pl = ILUZero.ilu0(A_eval))
+        #x = LinearSolve.solve(p, KrylovJL_MINRES(verbose=1, atol=1e-16, rtol=1e-16); 
+            #Pl = ILUZero.ilu0(A_eval)
+            #Pl = ILUZero.ilu0(A_eval)
+        # )
+
+        #x0 = set_initial_values(size(material_matrix))
+
+        (x, st) = Krylov.minres_qlp(A_eval, b_eval, #x0,
+                             verbose=0, itmax=10000000,
+                            atol=0.0, rtol=1e-18
+        )                    
+        
+        # (x, st) = Krylov.qmr(A_eval, b_eval, #x0,
+        #                       verbose=0,
+        #                      atol=0.0, rtol=1e-18
+        # )         
+
+        #@show st        
       else                
         x = LinearSolve.solve(p)
       end

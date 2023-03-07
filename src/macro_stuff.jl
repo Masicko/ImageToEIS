@@ -221,11 +221,20 @@ function par_study(
     local_par_study_prms = Dict(collect(keys(par_study_prms)) .=> specific_values)     
     local_parameters = extract_physical_parameters(local_par_study_prms)
           
+    if haskey(local_par_study_prms, "f_list")
+      f_list = local_par_study_prms["f_list"]
+    else
+      f_list = "TPE"
+    end
+    @show f_list
+    @show local_par_study_prms
+
     R, R_pol, C_pol = convert.(Float64,
       image_to_EIS(
                     local_par_study_prms["matrix_template"](local_par_study_prms),
                     local_parameters,
                     #
+                    f_list=f_list,
                     return_R_RC=true, 
                     TPE_warning=false,                      
                     pyplot=false,
@@ -245,7 +254,7 @@ function par_study(
     while true
       #println(dummy)
       dummy += 1
-    end
+    end 
   else
     for_each_prms_in_prms_lists(
       collect(values(par_study_prms)), 
@@ -434,9 +443,10 @@ end
 
 function run_par_study(;shell_command="echo",
                         script_file="run_EX3_ysz_fitting_ImageToEIS.jl",
-                        mode="go!", direct=false,
+                        mode="go!", 
+                        direct=false,
                         par_study_prms_dict::Dict,
-                        scripted_prms_names::Array,
+                        scripted_prms_names::Array=[],
                         save_to_file_prefix = "default_"
                       )
   
@@ -714,3 +724,47 @@ end
 
 
 
+######  time_test_evaluation
+function evaluate_time_test(dir)
+  collected_df = DataFrame(N=[], times=[])
+  number_of_times = 0
+  for file_name in readdir(dir, join=true)
+    open(file_name) do file
+      N=-1
+      times = []
+      for ln in eachline(file)
+        split_arr = split(ln, "= ")
+        if occursin("eval(Meta.parse(ARGS[1]))", split_arr[1])
+          prms_dict = eval(Meta.parse(split_arr[2]))
+          N = prms_dict["N"]
+        elseif occursin("times", split_arr[1])
+          times = eval(Meta.parse(split_arr[2]))
+          if number_of_times == 0
+            number_of_times = length(times)-1
+          elseif number_of_times > 0
+            if number_of_times != length(times)-1
+              return println("Error: Length of times does not match: $(number_of_times) != $(length(times))")
+            end
+          end
+        end
+      end
+      if N > 0 && length(times) > 0
+        #@show N, times, file_name
+        push!(collected_df, (N, mean(times[2:end])))
+      end
+    end
+  end
+  sort!(collected_df)
+  gdf = groupby(collected_df, "N")
+  out_df = combine(gdf, :times => mean)
+  return out_df
+end
+
+function plot_time_test(dir)
+  df = evaluate_time_test(dir)
+  plot(df[:, :N], df[:, :times_mean])
+  title("Time test for NxNxN ... DIRECT LU solver")
+  xlabel("N")
+  ylabel("t [s]")
+  return df
+end
