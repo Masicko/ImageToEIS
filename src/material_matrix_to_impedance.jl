@@ -126,8 +126,10 @@ function material_matrix_to_impedance(
         # )                    
  #############
 
-        LU = ilu(A_eval, τ = 0.1)
-        x = bicgstabl(A_eval, b_eval, 2, Pl = LU)
+        LU = ilu(A_eval, τ = 1e-6)
+        x = bicgstabl(A_eval, b_eval, 2, Pl = LU 
+          ,max_mv_products = 2000
+          )
 
         # (x, st) = Krylov.qmr(A_eval, b_eval, #x0,
         #                       verbose=0,

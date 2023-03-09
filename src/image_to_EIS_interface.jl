@@ -83,8 +83,12 @@ function image_to_EIS(
   
   
   if extract_R_RC 
-    if f_list[1] == Inf
-      R_ohm, R, C = (Z_list[1], 0.0, 0.0)
+    if length(f_list) == 1 && f_list[1] == Inf
+      R_ohm, R, C = (real(Z_list[1]), 0.0, 0.0)
+    elseif length(f_list) == 2 && f_list[1] == Inf && f_list[2] == 0.0
+      R_ohm, R, C = (real(Z_list[1]), real(Z_list[2])-real(Z_list[1]), 0.0)
+    elseif length(f_list) == 2 && f_list[1] == 0.0 && f_list[2] == Inf
+      R_ohm, R, C = (real(Z_list[2]), real(Z_list[1])-real(Z_list[2]), 0.0)
     else
       R_ohm, R, C = (1.0, 1.0, 1.0)
       if length(f_list) < 2
