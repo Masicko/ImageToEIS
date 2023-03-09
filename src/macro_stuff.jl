@@ -226,8 +226,6 @@ function par_study(
     else
       f_list = "TPE"
     end
-    @show f_list
-    @show local_par_study_prms
 
     R, R_pol, C_pol = convert.(Float64,
       image_to_EIS(

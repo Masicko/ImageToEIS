@@ -14,7 +14,7 @@ Base.@kwdef mutable struct parameters
     R_pol_LSM::Float64 = 40
     C_pol_LSM::Float64 = 0.005
     #
-    R_hole::Float64 = 1000000
+    R_hole::Float64 = 1e12
 end
 
 function RC_el(R, C, w)

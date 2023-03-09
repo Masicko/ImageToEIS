@@ -48,7 +48,7 @@ function material_matrix_to_impedance(
             return_only_linsys = false
             )
   if iterative_solver == "auto"
-    if prod(size(material_matrix)) < 1e5
+    if prod(size(material_matrix)) < 15^3
       iterative_solver = false
     else
       iterative_solver = true
@@ -119,12 +119,16 @@ function material_matrix_to_impedance(
         # )
 
         #x0 = set_initial_values(size(material_matrix))
+############
+        # (x, st) = Krylov.minres_qlp(A_eval, b_eval, #x0,
+        #                      verbose=0, itmax=10000000,
+        #                     atol=0.0, rtol=1e-18
+        # )                    
+ #############
 
-        (x, st) = Krylov.minres_qlp(A_eval, b_eval, #x0,
-                             verbose=0, itmax=10000000,
-                            atol=0.0, rtol=1e-18
-        )                    
-        
+        LU = ilu(A_eval, τ = 0.1)
+        x = bicgstabl(A_eval, b_eval, 2, Pl = LU)
+
         # (x, st) = Krylov.qmr(A_eval, b_eval, #x0,
         #                       verbose=0,
         #                      atol=0.0, rtol=1e-18

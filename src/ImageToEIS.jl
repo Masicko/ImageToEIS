@@ -3,7 +3,6 @@ module ImageToEIS
 #using ElectricalEquivalentCircuits
 using ImageIO
 using FileIO
-using IterativeSolvers
 using PyPlot
 using Dates
 using Printf
@@ -14,11 +13,21 @@ using Interpolations
 using Optim
 using SparseArrays
 using Statistics
+
+using IterativeSolvers
+using IncompleteLU
 using LinearSolve
-using ILUZero
-using Krylov
+#using ILUZero
+#using Krylov
 
 using Base
+
+# specific material dependences
+
+include("temperature_dependences.jl")
+export TI
+export TI_ID2
+export TI_2D
 
 include("physical_properties.jl")
 export matrix_to_file
@@ -49,18 +58,11 @@ export chess_matrix
 include("macro_stuff.jl")
 export par_study
 
-# specific material dependences
 
-include("temperature_dependences.jl")
-export TI
-export TI_ID2
-export TI_2D
-
-
-using SymPy
-include("analytical_solution_testing.jl")
-export compare_mat
-export sym_get_A_b_from_matrix
+# using SymPy
+# include("analytical_solution_testing.jl")
+# export compare_mat
+# export sym_get_A_b_from_matrix
 
 
 end # module
