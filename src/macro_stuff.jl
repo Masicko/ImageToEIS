@@ -619,9 +619,11 @@ function show_plots(x_axis, other_parameters, dir="snehurka/par_study/";
         func_name="",
         throw_exception=true,
         plot_bool=true,
-        show_var=false,        
+        show_var=false,
+        preprocessing_callback! =identity       
         )
   collected_df = collect_df_files_in_folder(dir)
+  preprocessing_callback!(collected_df)
   #@show collected_df
   grouped_df = get_grouped_processed_df(
                     collected_df, 
