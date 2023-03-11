@@ -227,12 +227,20 @@ function par_study(
       f_list = "TPE"
     end
 
+    if haskey(local_par_study_prms, "tau")
+      tau = local_par_study_prms["tau"]
+    else 
+      tau = 1e-2
+    end
+
+
     R, R_pol, C_pol = convert.(Float64,
       image_to_EIS(
                     local_par_study_prms["matrix_template"](local_par_study_prms),
                     local_parameters,
                     #
                     f_list=f_list,
+                    tau=tau,
                     return_R_RC=true, 
                     TPE_warning=false,                      
                     pyplot=false,

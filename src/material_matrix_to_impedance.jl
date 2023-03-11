@@ -42,10 +42,10 @@ function material_matrix_to_impedance(
             #      
             f_list,            
             #
-            complex_type=ComplexF64,
             iterative_solver = "auto",
             verbose = false,
-            return_only_linsys = false
+            return_only_linsys = false,
+            tau = e-2
             )
   if iterative_solver == "auto"
     if prod(size(material_matrix)) < 15^3
@@ -126,10 +126,12 @@ function material_matrix_to_impedance(
         # )                    
  #############
 
-        LU = ilu(A_eval, τ = 1e-6)
-        x = bicgstabl(A_eval, b_eval, 2, Pl = LU 
+        @time LU = ilu(A_eval, τ = tau)
+        @show nnz(LU)/nnz(A_eval)
+        @time x = bicgstabl(A_eval, b_eval, 2, Pl = LU
           ,max_mv_products = 2000
           )
+        
 
         # (x, st) = Krylov.qmr(A_eval, b_eval, #x0,
         #                       verbose=0,

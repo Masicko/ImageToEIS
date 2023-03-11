@@ -31,9 +31,9 @@ function image_to_EIS(
             TPE_f_list_out = [10.0^n for n in (-3 : 0.5 : 7)],
             TPE_warning = true,
             #f_list=[2.0^i for i in -3:10], 
-            #            
-            complex_type=ComplexF64,
+            #
             iterative_solver = "auto",
+            tau=1e-2,
             verbose = false,
             pyplot=true,
             return_R_RC=false,
@@ -66,9 +66,9 @@ function image_to_EIS(
     #      
     f_list = f_list,            
     #
-    complex_type=complex_type,
     iterative_solver = iterative_solver,
-    verbose = verbose
+    verbose = verbose,
+    tau = tau
   )
   
   if return_specific_impedance
