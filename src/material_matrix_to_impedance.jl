@@ -71,14 +71,14 @@ function material_matrix_to_impedance(
         return A_eval, b_eval, current_measurement
       end
       p = LinearProblem(A_eval,b_eval)
-      @time if iterative_solver
-        #x = LinearSolve.solve(p, KrylovJL_BICGSTAB(); Pl = ILUZero.ilu0(A_eval))
-        (x, st) = Krylov.minres_qlp(A_eval, b_eval, #x0,
-                             verbose=0, itmax=10000000,
-                            atol=0.0, rtol=1e-18
-        )      
+      if iterative_solver
+        print(" ---- ilu: "); @time LU = ilu(A_eval, τ = tau)
+        print("   \\--"); @show nnz(LU)/nnz(A_eval)
+        print(" --- bicg: "); @time x = bicgstabl(A_eval, b_eval, 2, Pl = LU
+          ,max_mv_products = 2000
+          )
       else                
-        x = LinearSolve.solve(p)
+        print(" ---- LU: "); @time x = LinearSolve.solve(p)
       end
       push!(Z_list, 1.0/current_measurement(x, w))
     end    
@@ -126,9 +126,9 @@ function material_matrix_to_impedance(
         # )                    
  #############
 
-        @time LU = ilu(A_eval, τ = tau)
-        @show nnz(LU)/nnz(A_eval)
-        @time x = bicgstabl(A_eval, b_eval, 2, Pl = LU
+        LU = ilu(A_eval, τ = tau)
+        #@show nnz(LU)/nnz(A_eval)
+        x = bicgstabl(A_eval, b_eval, 2, Pl = LU
           ,max_mv_products = 2000
           )
         

@@ -233,14 +233,22 @@ function par_study(
       tau = 1e-2
     end
 
+    if haskey(local_par_study_prms, "verbose")
+      verbose = local_par_study_prms["verbose"]
+    else
+      verbose = false
+    end
+    @show verbose
 
-    R, R_pol, C_pol = convert.(Float64,
+
+    etime = @elapsed R, R_pol, C_pol = convert.(Float64,
       image_to_EIS(
                     local_par_study_prms["matrix_template"](local_par_study_prms),
                     local_parameters,
                     #
                     f_list=f_list,
                     tau=tau,
+                    verbose=verbose,
                     return_R_RC=true, 
                     TPE_warning=false,                      
                     pyplot=false,
@@ -250,7 +258,7 @@ function par_study(
     append!(output_data_frame, 
       merge(
         local_par_study_prms,
-        Dict("R" => R, "R_pol" => R_pol, "C_pol" => C_pol)
+        Dict("R" => R, "R_pol" => R_pol, "C_pol" => C_pol, "etime" => etime)
       )
     )  
   end
@@ -453,7 +461,8 @@ function run_par_study(;shell_command="echo",
                         direct=false,
                         par_study_prms_dict::Dict,
                         scripted_prms_names::Array=[],
-                        save_to_file_prefix = "default_"
+                        save_to_file_prefix = "default_",
+                        num_nodes=1
                       )
   
   
@@ -484,7 +493,7 @@ function run_par_study(;shell_command="echo",
       if direct
         par_study(DICT, save_to_file=save_to_file)
       else      
-        run(`$(shell_command) $(script_file) $(DICT_str) $(save_to_file)`)
+        run(`$(shell_command) $(script_file) $(DICT_str) $(save_to_file) $(num_nodes)`)
       end
     elseif mode == "only_save_image"        
         @show DICT

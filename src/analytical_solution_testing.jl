@@ -89,7 +89,7 @@ end
 
 ############ SymPy ########
 
-function sym_get_A_b_from_matrix(matrix, prms, f)
+function sym_get_A_b_from_matrix(matrix, prms, f; only_general_Zs=false)
     @syms w
 
     @syms R_Y, R_L, R_p, C_p
@@ -149,6 +149,7 @@ function sym_get_A_b_from_matrix(matrix, prms, f)
         
         rows = []
         eqs =  []
+        
         for i in 2:num_nodes-1
             push!(rows, 
                 g_row(Zs[i-1], Zs[i], i, Us)
@@ -204,7 +205,11 @@ function sym_get_A_b_from_matrix(matrix, prms, f)
     # end
 
     sym_prms = sym_get_sym_prms(prms)
-    Zs = sym_make_Z_from_matrix(matrix)
+    if !only_general_Zs
+    	Zs = sym_make_Z_from_matrix(matrix)
+    else
+    	Zs = symbols.(["Z$(i)" for i in 1:size(matrix, 2)])
+    end
     rows, eqs, res, Us = my_solve(Zs, sym_prms)
     #return rows, eqs, res, Us
     A, b = sym_get_A_b(eqs, Us)
