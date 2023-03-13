@@ -45,7 +45,7 @@ function material_matrix_to_impedance(
             iterative_solver = "auto",
             verbose = false,
             return_only_linsys = false,
-            tau = e-2
+            tau = 1e-2
             )
   if iterative_solver == "auto"
     if prod(size(material_matrix)) < 15^3
