@@ -573,11 +573,16 @@ function test_get_processed_df()
   return show_plots(x_axis, other_parameters, "snehurka/par_studies/por_study_50x50/")  
 end
 
-
 function collect_df_files_in_folder(dir)
   collected_df = DataFrame()
   for file_name in readdir(dir)
     actual_DF = DataFrame(CSV.File(dir*"/$(file_name)"))
+    #@show actual_DF
+    #for key in ["etime", "verbose", "tau"]
+    #  if key in names(actual_DF)
+    #    select!(actual_DF, Not([Symbol(key)]))
+    #  end
+    #end
     collected_df = vcat(collected_df, actual_DF)
   end
   return collected_df

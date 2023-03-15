@@ -33,7 +33,7 @@ include("physical_properties.jl")
 export matrix_to_file
 
 # general part
-
+include("tau_estimation.jl")
 include("material_matrix_to_lin_sys.jl")
 include("material_matrix_to_impedance.jl")
 export material_matrix_to_impedance

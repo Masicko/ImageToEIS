@@ -33,7 +33,8 @@ function image_to_EIS(
             #f_list=[2.0^i for i in -3:10], 
             #
             iterative_solver = "auto",
-            tau=1e-2,
+            tau="auto",
+            fill_in_ratio = 2,
             verbose = false,
             pyplot=true,
             return_R_RC=false,
@@ -68,7 +69,8 @@ function image_to_EIS(
     #
     iterative_solver = iterative_solver,
     verbose = verbose,
-    tau = tau
+    tau = tau,
+    fill_in_ratio = fill_in_ratio
   )
   
   if return_specific_impedance

@@ -45,7 +45,8 @@ function material_matrix_to_impedance(
             iterative_solver = "auto",
             verbose = false,
             return_only_linsys = false,
-            tau = 1e-2
+            tau = "auto",
+            fill_in_ratio = 10
             )
   if iterative_solver == "auto"
     if prod(size(material_matrix)) < 15^3
@@ -72,6 +73,8 @@ function material_matrix_to_impedance(
       end
       p = LinearProblem(A_eval,b_eval)
       if iterative_solver
+        tau == "auto" && (tau = get_estimation_of_tau(A_eval; target_ratio = fill_in_ratio))
+
         print(" ---- ilu: "); @time LU = ilu(A_eval, τ = tau)
         print("   \\--"); @show nnz(LU)/nnz(A_eval)
         print(" --- bicg: "); @time x = bicgstabl(A_eval, b_eval, 2, Pl = LU
@@ -125,7 +128,7 @@ function material_matrix_to_impedance(
         #                     atol=0.0, rtol=1e-18
         # )                    
  #############
-
+        tau == "auto" && (tau = get_estimation_of_tau(A_eval; target_ratio = fill_in_ratio))
         LU = ilu(A_eval, τ = tau)
         #@show nnz(LU)/nnz(A_eval)
         x = bicgstabl(A_eval, b_eval, 2, Pl = LU
