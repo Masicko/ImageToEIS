@@ -36,11 +36,24 @@ function set_initial_values(dims)
   return x
 end
 
+function try_convert_system_to_real(sp_input, RHS)
+  sp_input_values = []
+  b_eval = []
+  try
+    sp_input_values = Float64.(sp_input[3])
+    b_eval = Float64.(RHS)
+  catch
+    sp_input_values = sp_input[3]
+    b_eval = RHS
+  end
+  return sp_input_values, b_eval
+end
+
 function material_matrix_to_impedance(
             material_matrix::Array = [1 1 0 1; 0 1 0 1; 0 1 0 1; 0 1 0 1],            
             prms_pairs = [];
             #      
-            f_list,            
+            f_list,
             #
             iterative_solver = "auto",
             verbose = false,
@@ -64,24 +77,28 @@ function material_matrix_to_impedance(
     for f in f_list
       verbose && @show f        
       w = 2*pi*f
-      
-      @time (header, sp_input, b_eval), current_measurement = material_matrix_to_lin_sys(material_matrix, params, w)
-      A_eval = sparse(sp_input...)
+
+      print("-- build lin sys:      "); 
+      @time (header, sp_input, RHS), current_measurement = material_matrix_to_lin_sys(material_matrix, params, w)
+      sp_input_values, b_eval = try_convert_system_to_real(sp_input, RHS)     
+      A_eval = sparse(sp_input[1], sp_input[2], sp_input_values)
+
 
       if return_only_linsys
         return A_eval, b_eval, current_measurement
       end
       p = LinearProblem(A_eval,b_eval)
       if iterative_solver
-        tau == "auto" && (tau = get_estimation_of_tau(A_eval; target_ratio = fill_in_ratio))
+        print("-- estiamtion of tau:   "); 
+        @time tau == "auto" && (tau = get_estimation_of_tau(A_eval; target_ratio = fill_in_ratio))
 
-        print(" ---- ilu: "); @time LU = ilu(A_eval, τ = tau)
-        print("   \\--"); @show nnz(LU)/nnz(A_eval)
-        print(" --- bicg: "); @time x = bicgstabl(A_eval, b_eval, 2, Pl = LU
+        print("-- solver --- ilu:      "); @time LU = ilu(A_eval, τ = tau)
+        print("      |          \\--------------- fill_in_ratio: ", nnz(LU)/nnz(A_eval), "\n")
+        print("      \\------ bicgstab: "); @time x = bicgstabl(A_eval, b_eval, 2, Pl = LU
           ,max_mv_products = 2000
           )
       else                
-        print(" ---- LU: "); @time x = LinearSolve.solve(p)
+        print("-- solver ---- LU:      "); @time x = LinearSolve.solve(p)
       end
       push!(Z_list, 1.0/current_measurement(x, w))
     end    
@@ -95,18 +112,7 @@ function material_matrix_to_impedance(
       w = 2*pi*f
       
       (header, sp_input, RHS), current_measurement = material_matrix_to_lin_sys(material_matrix, params, w)
-      sp_input_values = []
-      b_eval = []
-      try
-        sp_input_values = Float64.(sp_input[3])
-        b_eval = Float64.(RHS)
-        #println("converted")
-      catch
-        #println("cannot convert")
-        #@show sp_input[3]
-        sp_input_values = sp_input[3]
-        b_eval = RHS
-      end
+      sp_input_values, b_eval = try_convert_system_to_real(sp_input, RHS)     
       A_eval = sparse(sp_input[1], sp_input[2], sp_input_values)
 
       if return_only_linsys
@@ -115,37 +121,14 @@ function material_matrix_to_impedance(
 
       p = LinearProblem(A_eval,b_eval)
       if iterative_solver
-        #x = LinearSolve.solve(p, KrylovJL_BICGSTAB(verbose=0, atol=1e-16, rtol=1e-16); Pl = ILUZero.ilu0(A_eval))
-        #x = LinearSolve.solve(p, KrylovJL_MINRES(verbose=1, atol=1e-16, rtol=1e-16); 
-            #Pl = ILUZero.ilu0(A_eval)
-            #Pl = ILUZero.ilu0(A_eval)
-        # )
-
-        #x0 = set_initial_values(size(material_matrix))
-############
-        # (x, st) = Krylov.minres_qlp(A_eval, b_eval, #x0,
-        #                      verbose=0, itmax=10000000,
-        #                     atol=0.0, rtol=1e-18
-        # )                    
- #############
         tau == "auto" && (tau = get_estimation_of_tau(A_eval; target_ratio = fill_in_ratio))
         LU = ilu(A_eval, τ = tau)
-        #@show nnz(LU)/nnz(A_eval)
         x = bicgstabl(A_eval, b_eval, 2, Pl = LU
           ,max_mv_products = 2000
-          )
-        
-
-        # (x, st) = Krylov.qmr(A_eval, b_eval, #x0,
-        #                       verbose=0,
-        #                      atol=0.0, rtol=1e-18
-        # )         
-
-        #@show st        
+          )       
       else                
         x = LinearSolve.solve(p)
       end
-      #@show x
       push!(Z_list, 1.0/current_measurement(x, w))
     end     
   end
