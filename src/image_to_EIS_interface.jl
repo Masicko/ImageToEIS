@@ -34,7 +34,7 @@ function image_to_EIS(
             #
             iterative_solver = "auto",
             tau="auto",
-            fill_in_ratio = 2,
+            fill_in_ratio = 5,
             verbose = false,
             pyplot=true,
             return_R_RC=false,
